@@ -1,23 +1,16 @@
 <script setup lang="ts">
+// Define props using defineProps generic syntax
 defineProps<{
-  message: string | null
+  message: string | null // Expects a message string or null
 }>()
 </script>
 
 <template>
-  <p v-if="message" class="error-message">
+  <p v-if="message" class="bg-red-100 text-red-700 px-4 py-3 rounded-md text-sm text-center">
     {{ message }}
   </p>
 </template>
 
 <style scoped>
-.error-message {
-  color: #d9534f;
-  background-color: #f2dede;
-  border: 1px solid #ebccd1;
-  padding: 0.8rem;
-  border-radius: 4px;
-  margin-bottom: 1rem;
-  text-align: center;
-}
+/* No scoped styles needed as Tailwind classes handle all styling. */
 </style>

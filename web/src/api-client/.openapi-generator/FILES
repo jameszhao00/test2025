@@ -1,10 +1,11 @@
-.openapi-generator-ignore
 apis/DefaultApi.ts
 apis/index.ts
 index.ts
-models/CreateTodo.ts
+models/ChatMessage.ts
+models/ChatRequest.ts
+models/ChatResponse.ts
+models/FetchMessagesResponse.ts
 models/HTTPValidationError.ts
-models/Todo.ts
 models/ValidationError.ts
 models/ValidationErrorLocInner.ts
 models/index.ts

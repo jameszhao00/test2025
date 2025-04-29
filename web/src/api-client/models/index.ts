@@ -1,7 +1,9 @@
 /* tslint:disable */
 /* eslint-disable */
-export * from './CreateTodo';
+export * from './ChatMessage';
+export * from './ChatRequest';
+export * from './ChatResponse';
+export * from './FetchMessagesResponse';
 export * from './HTTPValidationError';
-export * from './Todo';
 export * from './ValidationError';
 export * from './ValidationErrorLocInner';

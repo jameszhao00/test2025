@@ -1,149 +1,254 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import TodoForm from './components/TodoForm.vue'
-import TodoList from './components/TodoList.vue'
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import ChatWindow from './components/ChatWindow.vue'
+import ChatInput from './components/ChatInput.vue'
 import ErrorMessage from './components/ErrorMessage.vue'
-// Import the generated API client and models
-import { DefaultApi, Configuration, ResponseError } from '@/api-client' // Using '@' alias for src
-import type { Todo, CreateTodo } from '@/api-client' // Using 'import type' for types
+// Import the generated API client and models for Chat
+import { DefaultApi, Configuration, ResponseError } from '@/api-client'
+import type { ChatMessage, ChatRequest } from '@/api-client' // Use Chat related types
+
+// --- Constants ---
+const SESSION_ID_STORAGE_KEY = 'chatSessionId';
+const POLLING_INTERVAL_MS = 3000; // Poll for new messages every 3 seconds
 
 // --- API Client Setup ---
-// Configure the base path if needed, otherwise it defaults to http://localhost
-// If your API is served from the same origin as the frontend (e.g., /api),
-// you might set basePath to '' or '/'. For this example, we assume relative paths work.
-const config = new Configuration({ basePath: '' }); // Adjust basePath if necessary
+const config = new Configuration({ basePath: '' }); // Adjust if your API is served elsewhere
 const apiClient = new DefaultApi(config);
 
-// Reactive state - uses the imported Todo type from the api-client
-const todos = ref<Todo[]>([])
+// --- Reactive State ---
+const messages = ref<ChatMessage[]>([]) // Holds all messages for the current session
+const sessionId = ref<string | null>(localStorage.getItem(SESSION_ID_STORAGE_KEY)); // Load session ID from storage
 const error = ref<string | null>(null)
+const isLoading = ref<boolean>(false); // Loading state for sending messages
+const isConnecting = ref<boolean>(false); // Initial connection/loading state
+const lastMessageId = ref<number>(0); // Track the ID of the last message received
+const pollingTimer = ref<number | null>(null); // Timer ID for polling
 
-// --- API Interaction Logic (Using the generated client) ---
+// --- DOM Refs ---
+const chatWindowRef = ref<InstanceType<typeof ChatWindow> | null>(null); // Ref to scroll chat window
 
-async function fetchTodos() {
-  error.value = null
-  try {
-    // Use the generated client method
-    const fetchedTodos = await apiClient.getTodosApiTodosGet();
-    todos.value = fetchedTodos;
-  } catch (e) {
-    console.error('Failed to fetch todos:', e)
-    error.value = await getErrorMessage(e, 'Failed to load todos. Is the backend running?');
-  }
-}
-
-// Triggered by event from TodoForm
-async function handleAddTodo(text: string) {
-  error.value = null
-  try {
-    // Prepare the request body according to the CreateTodo model
-    const todoToAdd: CreateTodo = { text };
-    // Use the generated client method
-    const newTodo = await apiClient.createTodoApiTodosPost({ createTodo: todoToAdd });
-    todos.value.push(newTodo);
-  } catch (e) {
-    console.error('Failed to add todo:', e)
-    error.value = await getErrorMessage(e, 'Failed to add todo.');
-  }
-}
-
-// Triggered by event from TodoList/TodoItem
-async function handleToggleTodo(todoId: number) {
-  error.value = null
-  try {
-    // Use the generated client method
-    const updatedTodo = await apiClient.toggleTodoDoneApiTodosTodoIdTogglePut({ todoId });
-    const index = todos.value.findIndex(t => t.id === todoId)
-    if (index !== -1) {
-      // Update the local state with the response
-      // It's safer to replace the whole object or update all relevant fields
-      todos.value[index] = updatedTodo;
-      // Or specifically update if only 'done' changes:
-      // todos.value[index].done = updatedTodo.done
-    }
-  } catch (e) {
-    console.error('Failed to toggle todo:', e)
-    error.value = await getErrorMessage(e, 'Failed to update todo status.');
-  }
-}
-
-// Triggered by event from TodoList/TodoItem
-async function handleDeleteTodo(todoId: number) {
-  error.value = null
-  try {
-    // Use the generated client method (returns void on success)
-    await apiClient.deleteTodoApiTodosTodoIdDelete({ todoId });
-    // Update local state on success
-    todos.value = todos.value.filter(t => t.id !== todoId)
-  } catch (e) {
-    console.error('Failed to delete todo:', e)
-    error.value = await getErrorMessage(e, 'Failed to delete todo.');
-  }
-}
+// --- API Interaction Logic ---
 
 // Helper function to extract error messages
-async function getErrorMessage(error: unknown, defaultMessage: string): Promise<string> {
-  if (error instanceof ResponseError) {
+async function getErrorMessage(e: unknown, defaultMessage: string): Promise<string> {
+  error.value = null; // Clear previous error
+  console.error(defaultMessage, e); // Log the error details
+
+  if (e instanceof ResponseError) {
     try {
-      // Attempt to parse the response body as JSON for detailed errors (like HTTPValidationError)
-      const errorBody = await error.response.json();
-      // FastAPI validation errors often have a 'detail' field
+      const errorBody = await e.response.json();
       if (errorBody.detail) {
-        // If detail is an array (like from HTTPValidationError), format it
         if (Array.isArray(errorBody.detail)) {
           return errorBody.detail.map((d: any) => `${d.loc.join('.')} - ${d.msg}`).join('; ');
         }
-        // If detail is a string
         return String(errorBody.detail);
       }
+      return `${e.response.status}: ${e.response.statusText || defaultMessage}`;
     } catch (parseError) {
-      // If parsing fails, fall back to status text or default message
-      return `${error.response.status}: ${error.response.statusText || defaultMessage}`;
+      console.error('Failed to parse error response:', parseError);
+      return `${e.response.status}: ${e.response.statusText || defaultMessage}`;
     }
-    // Fallback if parsing succeeded but no 'detail' field found
-    return `${error.response.status}: ${error.response.statusText || defaultMessage}`;
-  } else if (error instanceof Error) {
-    return error.message;
+  } else if (e instanceof Error) {
+    return e.message;
   }
   return defaultMessage;
 }
 
 
-// --- Lifecycle Hook ---
-onMounted(fetchTodos)
+// Function to send a message
+async function handleSendMessage(inputText: string) {
+  error.value = null;
+  isLoading.value = true;
+
+  // Optimistic UI Update
+  const tempUserMessage: ChatMessage = {
+      id: Date.now(), // Use timestamp as temporary ID
+      sessionId: sessionId.value || 'temp',
+      role: 'user',
+      content: inputText,
+  };
+    messages.value.push(tempUserMessage);
+    await nextTick();
+    chatWindowRef.value?.scrollToBottom();
+
+
+  const requestBody: ChatRequest = {
+    sessionId: sessionId.value,
+    content: inputText
+  };
+
+  try {
+    const response = await apiClient.handleChatApiChatPost({ chatRequest: requestBody });
+
+    if (!sessionId.value && response.sessionId) {
+      sessionId.value = response.sessionId;
+      localStorage.setItem(SESSION_ID_STORAGE_KEY, response.sessionId);
+      console.log('Started new session:', response.sessionId);
+      startPolling(); // Start polling only after getting a session ID
+    }
+
+    // Backend Confirmed Update - Remove optimistic message
+    // We rely on polling to fetch the real messages, including the user's and assistant's
+    const tempIndex = messages.value.findIndex(m => m.id === tempUserMessage.id);
+    if (tempIndex !== -1) {
+        messages.value.splice(tempIndex, 1);
+    }
+    // Trigger immediate fetch after sending to get confirmation faster
+    await fetchMessages();
+
+
+  } catch (e) {
+    // Remove optimistic message on error
+      const tempIndex = messages.value.findIndex(m => m.id === tempUserMessage.id);
+      if (tempIndex !== -1) {
+          messages.value.splice(tempIndex, 1);
+      }
+    error.value = await getErrorMessage(e, 'Failed to send message.');
+    if (error.value?.includes("Session not found")) {
+        clearSession(); // Clear invalid session if server indicates it
+    }
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+// Function to fetch messages
+async function fetchMessages() {
+  if (!sessionId.value) {
+    isConnecting.value = false; // Ensure connecting state is off if no session
+    return;
+  }
+
+  // Don't show connecting message during regular polling, only initial load
+  // isConnecting.value = messages.value.length === 0; // Only set connecting if no messages exist yet
+
+  try {
+    const response = await apiClient.getSessionMessagesApiChatSessionIdMessagesGet({
+      sessionId: sessionId.value,
+      since: lastMessageId.value // Fetch only messages newer than the last one we received
+    });
+
+    if (response.messages && response.messages.length > 0) {
+      const existingIds = new Set(messages.value.map(m => m.id));
+      const newMessages = response.messages.filter(m => !existingIds.has(m.id)); // Avoid duplicates
+
+      if (newMessages.length > 0) {
+          messages.value.push(...newMessages);
+          // Sort just in case messages arrive out of order (though unlikely with 'since')
+          messages.value.sort((a, b) => a.id - b.id);
+          lastMessageId.value = messages.value[messages.value.length - 1].id; // Update last message ID
+          await nextTick();
+          chatWindowRef.value?.scrollToBottom(); // Scroll down after adding new messages
+      }
+    }
+  } catch (e) {
+    const fetchError = await getErrorMessage(e, 'Failed to fetch messages.');
+      // Only display fetch error if there isn't already an error showing,
+      // or if it's specifically a "Session not found" error which requires clearing.
+      if (fetchError?.includes("Session not found") || !error.value) {
+          error.value = fetchError;
+      }
+    if (error.value?.includes("Session not found")) {
+        clearSession(); // Clear invalid session
+    }
+  } finally {
+    isConnecting.value = false; // Turn off connecting indicator after fetch attempt
+  }
+}
+
+// --- Polling Logic ---
+function startPolling() {
+  stopPolling(); // Clear any existing timer
+  if (!sessionId.value) return; // Don't poll without a session
+  console.log('Starting polling...');
+  // Fetch immediately first, then set interval
+  fetchMessages();
+  pollingTimer.value = window.setInterval(fetchMessages, POLLING_INTERVAL_MS);
+}
+
+function stopPolling() {
+  if (pollingTimer.value !== null) {
+    console.log('Stopping polling.');
+    clearInterval(pollingTimer.value);
+    pollingTimer.value = null;
+  }
+}
+
+// --- Session Management ---
+function clearSession() {
+    console.log('Clearing session.');
+    stopPolling();
+    sessionId.value = null;
+    localStorage.removeItem(SESSION_ID_STORAGE_KEY);
+    messages.value = []; // Clear messages array
+    lastMessageId.value = 0; // Reset last message ID tracker
+    error.value = "Session cleared or expired. Start a new chat by sending a message."; // Inform user
+    isConnecting.value = false; // Ensure connecting state is off
+}
+
+// --- Lifecycle Hooks ---
+onMounted(async () => {
+  if (sessionId.value) {
+    console.log('Found existing session:', sessionId.value);
+    isConnecting.value = true; // Show connecting message on initial load with session
+    await fetchMessages(); // Fetch initial messages for the session
+    startPolling(); // Start polling for updates
+  } else {
+    console.log('No existing session found. Send a message to start.');
+    isConnecting.value = false; // No connection attempt needed yet
+  }
+});
+
+onUnmounted(() => {
+  stopPolling(); // Clean up timer when component is destroyed
+});
+
+// Scroll to bottom when messages change
+watch(messages, async () => {
+  await nextTick(); // Wait for DOM update
+  chatWindowRef.value?.scrollToBottom();
+}, { deep: true }); // Watch for changes within the array items
+
 </script>
 
 <template>
-  <div class="todo-app">
-    <h1>My ToDo List</h1>
+  <div class="flex flex-col h-screen bg-gray-100">
 
-    <TodoForm @add-todo="handleAddTodo" />
+    <h1 class="flex-shrink-0 p-4 bg-white text-xl font-semibold text-center text-gray-800">
+      Chatty LLM
+    </h1>
 
-    <ErrorMessage :message="error" />
+    <div class="flex flex-col flex-grow overflow-hidden p-4 space-y-4">
 
-    <TodoList :todos="todos" @toggle-todo="handleToggleTodo" @delete-todo="handleDeleteTodo" />
+        <div v-if="isConnecting && messages.length === 0" class="flex-shrink-0 text-center text-gray-500 p-2">
+            Connecting to chat...
+        </div>
 
-    <p v-if="todos.length === 0 && !error">No todos yet!</p>
+        <ErrorMessage :message="error" class="flex-shrink-0" />
+
+        <ChatWindow
+            ref="chatWindowRef"
+            :messages="messages"
+            class="flex-grow overflow-y-auto min-h-0"
+           />
+
+        <div class="flex-shrink-0 space-y-2">
+            <div v-if="isLoading" class="text-center text-gray-500 text-sm p-1">
+                Sending...
+            </div>
+
+            <ChatInput @send-message="handleSendMessage" :disabled="isLoading || isConnecting" />
+        </div>
+    </div>
+
   </div>
 </template>
 
-<style scoped>
-/* Styles specific to App.vue layout */
-.todo-app {
-  max-width: 600px;
-  margin: 2rem auto;
-  padding: 2rem;
-  font-family: sans-serif;
-  background-color: #f4f4f4;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+<style>
+/* Global styles moved to main.css */
+/* Ensure html, body take full height if needed, though h-screen on the root div usually suffices */
+html, body {
+  height: 100%;
+  margin: 0;
 }
-
-h1 {
-  text-align: center;
-  color: #333;
-  margin-bottom: 1.5rem;
-}
-
-/* Styles for form, list items etc. are moved to their respective components */
 </style>
