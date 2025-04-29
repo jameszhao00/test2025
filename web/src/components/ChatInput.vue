@@ -1,53 +1,52 @@
 <script setup lang="ts">
-import { ref, nextTick } from 'vue';
+import { ref, nextTick } from 'vue'
 
 // Define props
 const props = defineProps<{
   disabled?: boolean // Optional boolean prop to disable the input and button
-}>();
+}>()
 
 // Define emits
-const emit = defineEmits(['send-message']); // Emits 'send-message' event with the text
+const emit = defineEmits(['send-message']) // Emits 'send-message' event with the text
 
 // Input state
-const inputText = ref('');
-const textareaRef = ref<HTMLTextAreaElement | null>(null); // Ref for the textarea element
+const inputText = ref('')
+const textareaRef = ref<HTMLTextAreaElement | null>(null) // Ref for the textarea element
 
 // Function to adjust textarea height based on content
 const adjustTextareaHeight = async () => {
-  await nextTick(); // Wait for DOM update
-  const textarea = textareaRef.value;
+  await nextTick() // Wait for DOM update
+  const textarea = textareaRef.value
   if (textarea) {
-    textarea.style.height = 'auto'; // Reset height to auto to calculate new scrollHeight
+    textarea.style.height = 'auto' // Reset height to auto to calculate new scrollHeight
     // Set height based on scroll height, but clamp between min/max defined by Tailwind classes
-    const newHeight = Math.min(Math.max(textarea.scrollHeight, 40), 120); // Corresponds to min-h-[40px] and max-h-[120px]
-    textarea.style.height = `${newHeight}px`;
+    const newHeight = Math.min(Math.max(textarea.scrollHeight, 40), 120) // Corresponds to min-h-[40px] and max-h-[120px]
+    textarea.style.height = `${newHeight}px`
   }
-};
+}
 
 // Handle form submission
 function handleSubmit() {
-  const text = inputText.value.trim();
+  const text = inputText.value.trim()
   if (text && !props.disabled) {
-    emit('send-message', text);
-    inputText.value = ''; // Clear input after sending
-    adjustTextareaHeight(); // Reset height after clearing
+    emit('send-message', text)
+    inputText.value = '' // Clear input after sending
+    adjustTextareaHeight() // Reset height after clearing
   }
 }
 
 // Handle Enter key (Shift+Enter for newline)
 function handleKeydown(event: KeyboardEvent) {
-    if (event.key === 'Enter' && !event.shiftKey) {
-        event.preventDefault(); // Prevent default newline insertion
-        handleSubmit(); // Submit the form
-    }
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault() // Prevent default newline insertion
+    handleSubmit() // Submit the form
+  }
 }
 
 // Handle input changes to resize textarea
 function handleInput() {
-  adjustTextareaHeight();
+  adjustTextareaHeight()
 }
-
 </script>
 
 <template>

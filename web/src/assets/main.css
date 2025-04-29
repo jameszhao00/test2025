@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* Import Tailwind's base styles, component classes, and utility classes */
 @tailwind base;
