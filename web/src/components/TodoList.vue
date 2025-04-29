@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import TodoItem from './TodoItem.vue'
-import type { Todo } from '../App.vue'; // Import the Todo type from App.vue
+// Import the Todo type from the generated api-client models
+import type { Todo } from '@/api-client'; // Using '@' alias for src
 
-// Define props received from parent (App.vue)
+// Define props received from parent (App.vue) - uses the generated Todo type
 defineProps<{
   todos: Todo[]
 }>()
@@ -11,6 +12,7 @@ defineProps<{
 // These events are just passed through from TodoItem
 const emit = defineEmits(['toggle-todo', 'delete-todo'])
 
+// Emit the ID of the todo to be toggled/deleted
 function handleToggle(id: number) {
     emit('toggle-todo', id)
 }

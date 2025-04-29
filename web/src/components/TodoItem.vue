@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import type { Todo } from '../App.vue'; // Import the Todo type
+// Import the Todo type from the generated api-client models
+import type { Todo } from '@/api-client'; // Using '@' alias for src
 
-// Define props received from parent (TodoList.vue)
+// Define props received from parent (TodoList.vue) - uses the generated Todo type
 defineProps<{
   todo: Todo
 }>()
 
 // Define events emitted up to parent (TodoList.vue)
+// No need to pass data, the parent (TodoList) knows the ID
 const emit = defineEmits(['toggle', 'delete'])
 
 </script>
@@ -18,9 +20,10 @@ const emit = defineEmits(['toggle', 'delete'])
       :checked="todo.done"
       @change="emit('toggle')"
       class="todo-checkbox"
+      :aria-label="'Mark ' + todo.text + ' as ' + (todo.done ? 'not done' : 'done')"
     />
     <span class="todo-text" @click="emit('toggle')">{{ todo.text }}</span>
-    <button @click="emit('delete')" class="delete-button">❌</button>
+    <button @click="emit('delete')" class="delete-button" :aria-label="'Delete ' + todo.text">❌</button>
   </li>
 </template>
 
@@ -59,6 +62,8 @@ const emit = defineEmits(['toggle', 'delete'])
   cursor: pointer; /* Allow clicking text to toggle */
   color: #333;
   font-size: 1rem;
+  /* Prevent text selection on rapid clicks */
+  user-select: none;
 }
 
 .delete-button {
