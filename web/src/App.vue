@@ -6,32 +6,40 @@ import ChatWindow from './components/ChatWindow.vue'
 import ChatInput from './components/ChatInput.vue'
 import ErrorMessage from './components/ErrorMessage.vue'
 import { useChatStore } from '@/stores/chat'
-// Import the augmented type if defined in the store, or handle locally
-// Assuming ClientChatMessage is defined/used within the store for simplicity here
 import type { ChatMessage, TextContent } from '@/api-client'
+import type { Ref } from 'vue'; // Explicitly import Ref
 
 // Define the augmented type here if not exported from store
+// Add _isLoadingPlaceholder property
 interface ClientChatMessage extends ChatMessage {
   _clientId: string
+  _isLoadingPlaceholder?: boolean // Flag for the loading message
+  _sendFailed?: boolean // Optional flag for failed user messages
 }
 
 // --- Store Setup ---
 const chatStore = useChatStore()
-// Need to cast messages from store if using augmented type internally
-const { messages, error, isLoading, isConnecting, hasSession } = storeToRefs(chatStore)
+// Use the augmented type for messages ref
+const { messages, error, isLoading, isConnecting, hasSession } = storeToRefs(chatStore) as {
+  messages: Ref<ClientChatMessage[]> // Cast here
+  error: Ref<string | null>
+  isLoading: Ref<boolean>
+  isConnecting: Ref<boolean>
+  hasSession: Ref<boolean>
+}
 const { sendMessage, initializeChat, clearSession } = chatStore
 
 // --- DOM Refs ---
 const chatWindowRef = ref<InstanceType<typeof ChatWindow> | null>(null)
 
 // --- Component Logic ---
+const placeholderMessageId = ref<string | null>(null) // To track the temporary message
 
 async function handleSendMessage(inputText: string) {
-  // --- Add User Message Immediately with Client ID ---
+  // 1. --- Add User Message Immediately ---
   const clientUserMessage: ClientChatMessage = {
-    // id: undefined, // No server ID
-    _clientId: uuidv4(), // Generate client-side unique key
-    sessionId: chatStore.sessionId || 'temp',
+    _clientId: uuidv4(),
+    sessionId: chatStore.sessionId || 'temp', // Will be updated if new session
     role: 'user',
     responseType: 'text',
     textContent: { text: inputText },
@@ -39,35 +47,68 @@ async function handleSendMessage(inputText: string) {
     formContent: null,
     sxsContent: null,
   }
-  // Add the message with the client ID to the store's array
-  // We push directly for simplicity, assuming store allows it.
-  // Alternatively, create a store action `addUserMessage`.
   messages.value.push(clientUserMessage)
   console.log(`[App.vue] Added user message with client ID: ${clientUserMessage._clientId}`)
   await nextTick()
   chatWindowRef.value?.scrollToBottom()
-  // --- End Add User Message ---
 
-  // Call store action to send message and add reply
-  // Pass the clientUserMessage so the store can update its session ID if needed
-  const success = await sendMessage(clientUserMessage)
-
-  // --- NO REMOVAL NEEDED ---
-  // The user message persists. The store adds the assistant reply.
-
-  if (!success) {
-    console.error('[App.vue] sendMessage failed, error should be displayed.')
-    // Optionally, add a visual indicator to the failed message
-    // Find the message and add a property like `_sendFailed: true`
-    const failedMsgIndex = messages.value.findIndex(
-      (m) => m._clientId === clientUserMessage._clientId,
-    )
-    if (failedMsgIndex !== -1) {
-      // This requires ClientChatMessage to allow extra properties or define _sendFailed
-      // (messages.value[failedMsgIndex] as any)._sendFailed = true;
-    }
+  // 2. --- Add Placeholder Assistant Message ---
+  placeholderMessageId.value = uuidv4() // Generate ID for placeholder
+  const placeholderMessage: ClientChatMessage = {
+    _clientId: placeholderMessageId.value,
+    sessionId: chatStore.sessionId || 'temp', // Use current or temp session ID
+    role: 'assistant',
+    responseType: 'text', // Placeholder type, content doesn't matter
+    textContent: null, // No actual content needed
+    markdownContent: null,
+    formContent: null,
+    sxsContent: null,
+    _isLoadingPlaceholder: true, // Mark this as the placeholder
   }
-  // isLoading state is managed by the store
+  messages.value.push(placeholderMessage)
+  console.log(`[App.vue] Added placeholder message with client ID: ${placeholderMessageId.value}`)
+  await nextTick()
+  chatWindowRef.value?.scrollToBottom()
+
+  // 3. --- Send Message and Handle Response ---
+  let success = false
+  try {
+    // Pass the original user message object (clientUserMessage)
+    success = await sendMessage(clientUserMessage)
+  } catch (err) {
+    console.error('[App.vue] Error calling sendMessage:', err)
+    success = false
+    // Error ref should be set by the store's catch block
+  } finally {
+    // 4. --- Remove Placeholder Message ---
+    if (placeholderMessageId.value) {
+      const placeholderIndex = messages.value.findIndex(
+        (m) => m._clientId === placeholderMessageId.value,
+      )
+      if (placeholderIndex !== -1) {
+        messages.value.splice(placeholderIndex, 1) // Remove the placeholder
+        console.log(`[App.vue] Removed placeholder message with client ID: ${placeholderMessageId.value}`)
+      }
+      placeholderMessageId.value = null // Reset placeholder tracker
+    }
+
+    // 5. --- Handle Send Failure (Optional: Mark User Message) ---
+    if (!success) {
+      console.error('[App.vue] sendMessage failed, error should be displayed.')
+      // Find the original user message and mark it as failed
+      const failedMsgIndex = messages.value.findIndex(
+        (m) => m._clientId === clientUserMessage._clientId,
+      )
+      if (failedMsgIndex !== -1) {
+        // Ensure the message object allows adding this property
+        messages.value[failedMsgIndex]._sendFailed = true
+        console.log(`[App.vue] Marked user message ${clientUserMessage._clientId} as failed.`)
+      }
+    }
+    // isLoading state is managed by the store and should be false now
+    await nextTick() // Ensure DOM updates after removing placeholder
+    chatWindowRef.value?.scrollToBottom() // Scroll again after potential removal/addition
+  }
 }
 
 // --- Lifecycle Hooks ---
@@ -76,20 +117,35 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  // No cleanup needed for polling
+  // Cleanup if component is destroyed while loading
+  if (placeholderMessageId.value) {
+     const placeholderIndex = messages.value.findIndex(
+        (m) => m._clientId === placeholderMessageId.value,
+      )
+      if (placeholderIndex !== -1) {
+        messages.value.splice(placeholderIndex, 1)
+      }
+  }
 })
 
 // Scroll to bottom when messages change
-// No sorting needed as order is append-only + full refresh
 watch(
   messages,
   async () => {
-    // console.log("[App.vue] Watcher triggered on messages.");
     await nextTick()
     chatWindowRef.value?.scrollToBottom()
   },
-  { deep: true },
+  { deep: true, immediate: false }, // Don't run immediately on setup
 )
+
+// Watch for isLoading changes specifically to scroll when placeholder is added/removed
+watch(isLoading, async (newVal, oldVal) => {
+  if (newVal !== oldVal) { // Only trigger on change
+    await nextTick();
+    chatWindowRef.value?.scrollToBottom();
+  }
+});
+
 </script>
 
 <template>
@@ -97,7 +153,7 @@ watch(
     <h1
       class="flex-shrink-0 p-4 bg-white text-xl font-semibold text-center text-gray-800 shadow-sm"
     >
-      Chatty LLM (No IDs)
+      Chatty LLM (No IDs) - Inline Loading
     </h1>
 
     <div class="flex flex-col flex-grow overflow-hidden p-4 space-y-4">
@@ -117,8 +173,6 @@ watch(
       />
 
       <div class="flex-shrink-0 space-y-2">
-        <div v-if="isLoading" class="text-center text-gray-500 text-sm p-1">Sending...</div>
-
         <ChatInput @send-message="handleSendMessage" :disabled="isLoading || isConnecting" />
       </div>
     </div>
@@ -126,13 +180,16 @@ watch(
 </template>
 
 <style>
-/* Styles remain the same */
+/* Global styles */
 html,
 body {
   height: 100%;
   margin: 0;
   font-family: 'Inter', sans-serif;
+  overflow: hidden; /* Prevent body scrollbars */
 }
+
+/* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;
 }

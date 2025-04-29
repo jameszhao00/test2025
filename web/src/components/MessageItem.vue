@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { marked } from 'marked' // Import marked
-// Import the base ChatMessage and the specific content types if needed for casting
 import type {
   ChatMessage,
   TextContent,
@@ -14,16 +13,22 @@ import type {
 import FormMessage from './FormMessage.vue'
 import SxsMessage from './SxsMessage.vue'
 
-// Define props using defineProps generic syntax
+// Define the augmented type locally (or import if defined globally)
+interface ClientChatMessage extends ChatMessage {
+  _clientId: string
+  _isLoadingPlaceholder?: boolean // Flag for the loading message
+  _sendFailed?: boolean // Optional flag for failed user messages
+}
+
+// Define props using defineProps generic syntax, expecting the augmented type
 const props = defineProps<{
-  message: ChatMessage // Expects a message object conforming to ChatMessage type
+  message: ClientChatMessage // Expects a message object conforming to ClientChatMessage
 }>()
 
 // Determine message alignment and styling based on role
 const isUser = props.message.role === 'user'
 
 // --- Computed property for parsed Markdown ---
-// Access markdownContent directly after checking responseType
 const parsedMarkdown = computed(() => {
   if (props.message.responseType === 'markdown' && props.message.markdownContent) {
     try {
@@ -40,6 +45,10 @@ const parsedMarkdown = computed(() => {
 // --- Helper function to get the relevant content object ---
 // This simplifies the template slightly
 const relevantContent = computed(() => {
+  // Return null if it's the loading placeholder
+  if (props.message._isLoadingPlaceholder) {
+    return null
+  }
   switch (props.message.responseType) {
     case 'text':
       return props.message.textContent
@@ -58,46 +67,81 @@ const relevantContent = computed(() => {
 <template>
   <li class="flex" :class="[isUser ? 'justify-end' : 'justify-start']">
     <div
-      class="px-4 py-2 rounded-lg max-w-[85%] sm:max-w-[75%] text-sm shadow-sm"
+      class="px-4 py-2 rounded-lg max-w-[85%] sm:max-w-[75%] text-sm shadow-sm flex items-center"
       :class="[
         isUser
           ? 'bg-blue-500 text-white rounded-br-none' /* User: Blue bg, white text, sharp bottom-right */
           : 'bg-gray-200 text-gray-800 rounded-bl-none' /* Assistant: Gray bg, dark text, sharp bottom-left */,
+        // Add subtle opacity if the user message failed to send
+        isUser && message._sendFailed ? 'opacity-70' : '',
       ]"
     >
-      <span
-        v-if="message.responseType === 'text' && message.textContent"
-        class="whitespace-pre-wrap break-words"
-      >
-        {{ message.textContent.text }}
-      </span>
+      <div v-if="message._isLoadingPlaceholder" class="flex space-x-1.5 items-center h-5">
+         <span class="sr-only">Loading...</span> <div class="h-1.5 w-1.5 bg-current rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+         <div class="h-1.5 w-1.5 bg-current rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+         <div class="h-1.5 w-1.5 bg-current rounded-full animate-bounce"></div>
+      </div>
 
-      <div
-        v-else-if="message.responseType === 'markdown' && message.markdownContent"
-        class="prose prose-sm max-w-none break-words"
-        v-html="parsedMarkdown"
-      ></div>
+      <template v-else>
+        <span
+          v-if="message.responseType === 'text' && message.textContent"
+          class="whitespace-pre-wrap break-words"
+        >
+          {{ message.textContent.text }}
+        </span>
 
-      <FormMessage
-        v-else-if="message.responseType === 'form' && message.formContent"
-        :content="message.formContent"
-        :is-user-message="isUser"
-      />
+        <div
+          v-else-if="message.responseType === 'markdown' && message.markdownContent"
+          class="prose prose-sm max-w-none break-words"
+          v-html="parsedMarkdown"
+        ></div>
 
-      <SxsMessage
-        v-else-if="message.responseType === 'sxs' && message.sxsContent"
-        :content="message.sxsContent"
-        :is-user-message="isUser"
-      />
+        <FormMessage
+          v-else-if="message.responseType === 'form' && message.formContent"
+          :content="message.formContent"
+          :is-user-message="isUser"
+        />
 
-      <span v-else class="text-red-500 italic">
-        Content error for type '{{ message.responseType }}'.
-      </span>
+        <SxsMessage
+          v-else-if="message.responseType === 'sxs' && message.sxsContent"
+          :content="message.sxsContent"
+          :is-user-message="isUser"
+        />
+
+        <span v-else class="text-red-500 italic">
+          <template v-if="isUser && message._sendFailed">
+            (Failed to send)
+          </template>
+          <template v-else>
+             Content error for type '{{ message.responseType }}'.
+          </template>
+        </span>
+      </template>
+
+       <svg v-if="isUser && message._sendFailed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 ml-2 text-red-300 flex-shrink-0">
+        <path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5Zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd" />
+      </svg>
+
     </div>
   </li>
 </template>
 
 <style>
+/* Add bounce animation */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(-25%);
+    animation-timing-function: cubic-bezier(0.8,0,1,1);
+  }
+  50% {
+    transform: none;
+    animation-timing-function: cubic-bezier(0,0,0.2,1);
+  }
+}
+.animate-bounce {
+  animation: bounce 1s infinite;
+}
+
 /* Prose styles remain the same as before */
 .prose {
   color: inherit;
