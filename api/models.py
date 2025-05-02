@@ -1,8 +1,25 @@
 # api/models.py
 from typing import List, Literal, Optional, Union, Dict, Any
 from pydantic import BaseModel, Field, validator, root_validator
+from enum import Enum
 
-# --- Content Type Models ---
+
+class WorkflowStatus(str, Enum):
+    todo = 'todo'
+    in_progress = 'in_progress'
+    done = 'done'
+
+class WorkflowStep(BaseModel):
+    description: str
+    status: str #WorkflowStatus
+
+class WorkflowPhase(BaseModel):
+    description: str
+    steps: List[WorkflowStep]
+
+class TextAndWorkflowState(BaseModel):
+    text: str
+    workflow_state: List[WorkflowPhase]
 
 class TextContent(BaseModel):
     text: str
@@ -94,22 +111,17 @@ class ChatMessage(BaseModel):
     """ Represents a single message in the chat (without a server-side ID). """
     session_id: str
     role: Literal['user', 'assistant']
-    response_type: Literal['text', 'markdown', 'form', 'sxs'] # Discriminator for content
+    response_type: Literal['text', 'text_and_workflow_state']
 
-    # Optional fields for content types
     text_content: Optional[TextContent] = None
-    markdown_content: Optional[MarkdownContent] = None
-    form_content: Optional[FormContent] = None
-    sxs_content: Optional[SxSContent] = None
+    text_and_workflow_state_content: Optional[TextAndWorkflowState] = None
 
     @root_validator(pre=False, skip_on_failure=True)
     def check_content_consistency(cls, values):
         response_type = values.get('response_type')
         content_fields = {
             'text': values.get('text_content'),
-            'markdown': values.get('markdown_content'),
-            'form': values.get('form_content'),
-            'sxs': values.get('sxs_content'),
+            'text_and_workflow_state': values.get('text_and_workflow_state_content'),
         }
         populated_fields = [k for k, v in content_fields.items() if v is not None]
 

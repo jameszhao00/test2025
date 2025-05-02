@@ -43,9 +43,6 @@ async function handleSendMessage(inputText: string) {
     role: 'user',
     responseType: 'text',
     textContent: { text: inputText },
-    markdownContent: null,
-    formContent: null,
-    sxsContent: null,
   }
   messages.value.push(clientUserMessage)
   console.log(`[App.vue] Added user message with client ID: ${clientUserMessage._clientId}`)
@@ -60,9 +57,6 @@ async function handleSendMessage(inputText: string) {
     role: 'assistant',
     responseType: 'text', // Placeholder type, content doesn't matter
     textContent: null, // No actual content needed
-    markdownContent: null,
-    formContent: null,
-    sxsContent: null,
     _isLoadingPlaceholder: true, // Mark this as the placeholder
   }
   messages.value.push(placeholderMessage)

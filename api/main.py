@@ -1,210 +1,201 @@
 import os
 import uuid
-from typing import List, Dict, Optional, Any, Literal  # Keep Literal for roles/types
+import json # Import json module
+from typing import List, Dict, Optional, Literal
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from google.genai import types
+from pydantic import ValidationError # Import for handling schema validation errors
 
 # --- Import Pydantic Models from models.py ---
 from models import (
+    TextAndWorkflowState,
     ChatMessage,
     ChatRequest,
     ChatResponse,
     FetchMessagesResponse,
-    TextContent,
+    TextContent, # Needed for constructing response
 )
+import prompts
 
-# --- Import Gemini Client ---
-from gemini_client import generate_gemini_chat_response
+# --- Import Stateless Gemini Client Function ---
+# Assuming gemini_client.py is in the same directory
+from gemini_client import generate_gemini_response_stateless # Import the STATELESS function
 
 # --- FastAPI App Setup ---
-app = FastAPI(title="Session-Based Chatty LLM API (No IDs) - Gemini Powered")
+app = FastAPI(title="Session-Based Chatty LLM API (Stateless) - Gemini Powered")
 
-# --- In-Memory Session Storage ---
-# Stores session data, where each session has a list of 'messages' (as dicts)
-chat_sessions: Dict[str, Dict[str, Any]] = {}
+# --- In-Memory Session Storage (Stores History Lists) ---
+# Stores List[types.Content] for each session_id
+chat_sessions: Dict[str, List[types.Content]] = {}
 
-# --- Helper Functions ---
+# --- Helper Function to Convert TextAndWorkflowState to types.Content ---
+def text_workflow_to_content(state: TextAndWorkflowState) -> types.Content:
+    """Converts a TextAndWorkflowState object to a types.Content object for history."""
+    # Gemini expects the JSON representation as a string within a Part
+    json_string = state.model_dump_json() # Use model_dump_json for Pydantic v2+
+    return types.Content(role="model", parts=[types.Part.from_text(text=json_string)])
 
+# --- Helper Function to Convert types.Content back to ChatMessage ---
+def content_to_chat_message(content: types.Content, session_id: str) -> Optional[ChatMessage]:
+    """Converts a types.Content object back to a ChatMessage API model."""
+    message_role: Literal['user', 'assistant'] = "assistant" if content.role == "model" else "user"
+    msg_data = {
+        "session_id": session_id,
+        "role": message_role,
+        "response_type": "text", # Default
+        "textContent": None,
+        "textAndWorkflowStateContent": None,
+    }
+    combined_text = ""
 
-def get_or_create_session(session_id: Optional[str]) -> tuple[str, Dict[str, Any]]:
-    """Retrieves an existing session or creates a new one."""
-    global chat_sessions
-    if session_id and session_id in chat_sessions:
-        print(f"Retrieving existing session: {session_id}")
-        return session_id, chat_sessions[session_id]
-    elif session_id:
-        # If session_id is provided but not found, it's an error
-        raise HTTPException(status_code=404, detail=f"Session not found: {session_id}")
-    else:
-        # Create a new session if no ID was provided
-        new_session_id = str(uuid.uuid4())
-        chat_sessions[new_session_id] = {"messages": []}
-        print(f"Created new session: {new_session_id}")
-        return new_session_id, chat_sessions[new_session_id]
+    if not content.parts:
+        print(f"Warning: Content object has no parts. Role: {content.role}")
+        return None # Cannot process message with no parts
 
+    # Combine text from all parts first (useful for user messages and fallback)
+    for part in content.parts:
+        try:
+            combined_text += getattr(part, 'text', '')
+        except Exception as e:
+            print(f"Warning: Could not get text from part: {e}")
 
-def add_message_to_session(
-    session_data: Dict[str, Any],
-    session_id: str,
-    role: Literal["user", "assistant"],
-    response_type: Literal["text", "markdown", "form", "sxs"],
-    content_dict: Dict[
-        str, Any
-    ],  # Expects {'text_content': {...}}, {'form_content': {...}}, etc.
-) -> ChatMessage:
-    """
-    Creates a ChatMessage object, validates it, adds its dict representation
-    to the session history, and returns the object.
-    """
+    if not combined_text:
+        print(f"Warning: No text content found in parts for role {content.role}")
+        # Allow empty messages? Or skip? Let's skip for now.
+        # If empty messages are needed, adjust logic here.
+        return None
+
+    if message_role == 'assistant':
+        # ASSUME the first part contains the JSON structure for TextAndWorkflowState
+        first_part_text = getattr(content.parts[0], 'text', '')
+        if first_part_text:
+            try:
+                # Attempt to parse the first part's text as JSON
+                parsed_json = json.loads(first_part_text)
+                # Validate and create the TextAndWorkflowState model
+                validated_content = TextAndWorkflowState(**parsed_json)
+                msg_data["response_type"] = "text_and_workflow_state"
+                msg_data["textAndWorkflowStateContent"] = validated_content
+                print("DEBUG: Assistant message successfully parsed as TextAndWorkflowState.")
+            except (json.JSONDecodeError, ValidationError, TypeError) as parse_error:
+                print(f"Warning: Assistant message - Failed to parse/validate first part as TextAndWorkflowState: {parse_error}. Falling back to text.")
+                # Fallback: Use the combined text from all parts
+                msg_data["response_type"] = "text"
+                msg_data["textContent"] = TextContent(text=combined_text)
+            except Exception as e:
+                 print(f"Error processing assistant message content: {e}. Falling back to text.")
+                 msg_data["response_type"] = "text"
+                 msg_data["textContent"] = TextContent(text=combined_text)
+        else:
+             # Assistant message with no text in the first part - treat as text using combined
+             print("Warning: Assistant message - First part has no text. Treating as plain text.")
+             msg_data["response_type"] = "text"
+             msg_data["textContent"] = TextContent(text=combined_text)
+    else: # User message
+        msg_data["response_type"] = "text"
+        msg_data["textContent"] = TextContent(text=combined_text)
+        print("DEBUG: User message processed as TextContent.")
+
     try:
-        # Create and validate the message object using the imported Pydantic model
-        message = ChatMessage(
-            session_id=session_id,
-            role=role,
-            response_type=response_type,
-            **content_dict,  # Unpack the specific content field (e.g., text_content=...)
-        )
-        # Store the message as a dictionary in the session history
-        # Use model_dump for serialization compatible with Pydantic v2
-        session_data["messages"].append(message.model_dump(mode="json"))
-        print(
-            f"Added {role} message ({response_type}) to session {session_id}. Total messages: {len(session_data['messages'])}"
-        )
-        # Return the Pydantic model instance for use in the API response
-        return message
+        # Create the final ChatMessage model
+        msg = ChatMessage(**msg_data)
+        return msg
     except Exception as e:
-        # Catch potential validation errors or other issues during message creation
-        print(f"Error creating or adding ChatMessage: {e}")
-        print(f"Session Data (keys): {session_data.keys()}")
-        print(f"Content Dict trying to add: {content_dict}")
-        # Raise an internal server error if message creation fails
-        raise HTTPException(
-            status_code=500, detail=f"Internal error creating chat message: {e}"
-        )
-
+        print(f"Error creating final ChatMessage model: {e} - Data: {msg_data}")
+        return None
 
 # --- API Endpoints ---
-
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def handle_chat(request: ChatRequest):
     """
-    Handles chat requests:
-    1. Gets/Creates session.
-    2. Adds user message to history.
-    3. Calls Gemini client to generate a response based on history and requested type.
-    4. Adds assistant message to history.
-    5. Returns session ID and assistant reply.
+    Handles chat requests using the stateless Gemini client.
+    Manages history in memory.
+    ASSUMES the response from Gemini will be TextAndWorkflowState.
     """
-    try:
-        current_session_id, session_data = get_or_create_session(request.session_id)
-        history = session_data.get("messages", [])  # History is list of dicts
+    session_id = request.session_id
+    user_content_text = request.content
+    history: List[types.Content] = []
 
-        # --- Determine Requested Response Type (Round-Robin Example) ---
-        # The caller (this endpoint) decides the type for the next response.
-        # Simple round-robin: text -> markdown -> form -> sxs -> text ...
-        response_types_cycle: List[Literal["text", "markdown", "form", "sxs"]] = [
-            "text",
-            "markdown",
-            "form",
-            "sxs",
-        ]
-        # Get the type of the *last assistant message* to determine the next type
-        last_assistant_type = "text"  # Default if no previous assistant message
-        for msg in reversed(history):
-            if msg.get("role") == "assistant":
-                last_assistant_type = msg.get("response_type", "text")
-                break
-        try:
-            current_index = response_types_cycle.index(last_assistant_type)
-            next_type_index = (current_index + 1) % len(response_types_cycle)
-            requested_type = response_types_cycle[next_type_index]
-        except ValueError:
-            requested_type = "text"  # Fallback if last type wasn't in cycle
-        print(f"Requesting response type: {requested_type}")
-        # --- End Response Type Determination ---
+    # 1. Get or Create Chat History
+    if session_id and session_id in chat_sessions:
+        history = chat_sessions[session_id]
+        print(f"Using existing chat history for session: {session_id} (Length: {len(history)})")
+    else:
+        # Start a new chat history
+        if not session_id:
+            session_id = str(uuid.uuid4()) # Generate new ID only if none provided
+        print(f"Started new chat session: {session_id}")
+        chat_sessions[session_id] = history # Store the empty list
 
-        # 1. Add user message (always 'text' type for user input)
-        user_content_dict = {"text_content": TextContent(text=request.content)}
-        add_message_to_session(
-            session_data, current_session_id, "user", "text", user_content_dict
+    # Call the stateless function, passing system prompt, history, and new message
+    response_content_model: Optional[TextAndWorkflowState] = (
+        await generate_gemini_response_stateless(
+            system_instructions=prompts.ML_AGENT_INSTRUCTIONS,
+            history=history, # Pass the current history list
+            latest_user_content=user_content_text
         )
-        # Refresh history *after* adding the user message
-        history = session_data.get("messages", [])
+    )
+    if not response_content_model:
+        # Handle cases where Gemini client returned None (e.g., parsing error)
+        raise HTTPException(status_code=500, detail="Failed to get valid response from Gemini model.")
 
-        # 2. Generate response using Gemini Client
-        # Pass the history (list of dicts), new user content, and requested type
-        actual_response_type, assistant_content_dict = (
-            await generate_gemini_chat_response(
-                history, request.content, requested_type
-            )
-        )
-        # assistant_content_dict will be like {'text_content': {...}} or {'form_content': {...}} etc.
+    history.append(types.Content(role="user", parts=[types.Part.from_text(text=user_content_text)]))
+    history.append(text_workflow_to_content(response_content_model))
 
-        # 3. Add assistant reply to history and get the message object for the response
-        assistant_reply = add_message_to_session(
-            session_data,
-            current_session_id,
-            "assistant",
-            actual_response_type,  # Use the type returned by Gemini client
-            assistant_content_dict,  # Pass the structured content dict
-        )
+    # Store the updated history back (important!)
+    chat_sessions[session_id] = history
+    print(f"Updated history for session {session_id}. New length: {len(history)}")
 
-        # 4. Return the response containing the session ID and the assistant's reply message object
-        return ChatResponse(session_id=current_session_id, reply=assistant_reply)
+    # 4. Construct the API response object
+    assistant_reply_chatmessage = ChatMessage(
+        session_id=session_id,
+        role="assistant",
+        response_type='text_and_workflow_state', # Hardcoded based on assumption
+        text_and_workflow_state_content=response_content_model,
+        textContent=None # Ensure other content types are None
+    )
 
-    except HTTPException as e:
-        # Re-raise known HTTP exceptions (like 404 Session Not Found)
-        raise e
-    except Exception as e:
-        import traceback
-
-        print(f"Error handling chat: {e}\n{traceback.format_exc()}")
-        # Return a generic 500 error for unexpected issues
-        raise HTTPException(
-            status_code=500, detail=f"An internal server error occurred: {e}"
-        )
+    return ChatResponse(session_id=session_id, reply=assistant_reply_chatmessage)
 
 
 @app.get("/api/chat/{session_id}/messages", response_model=FetchMessagesResponse)
 async def get_session_messages(session_id: str):
-    """Fetches ALL messages for a given session ID."""
+    """
+    Fetches message history stored in the session dictionary.
+    Converts stored types.Content objects back to ChatMessage API models.
+    """
     global chat_sessions
     if session_id not in chat_sessions:
         raise HTTPException(status_code=404, detail=f"Session not found: {session_id}")
 
-    session_data = chat_sessions[session_id]
-    # Messages are stored as dicts, convert back to ChatMessage models for the response
-    try:
-        # Validate dicts against the ChatMessage model during list comprehension
-        messages_as_models = [
-            ChatMessage(**msg_dict) for msg_dict in session_data.get("messages", [])
-        ]
-    except Exception as e:
-        print(f"Error parsing stored messages for session {session_id}: {e}")
-        # If stored data is invalid, raise an error
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error retrieving message history for session {session_id}.",
-        )
+    # Retrieve the history list (List[types.Content])
+    history_content_list = chat_sessions.get(session_id, [])
+    messages_as_api_models: List[ChatMessage] = []
 
-    print(f"Fetching all {len(messages_as_models)} messages for session {session_id}")
-    return FetchMessagesResponse(messages=messages_as_models)
+    # Convert each stored Content object back to the ChatMessage format for the API
+    for i, content_item in enumerate(history_content_list):
+        chat_msg = content_to_chat_message(content_item, session_id)
+        if chat_msg:
+            messages_as_api_models.append(chat_msg)
+            print(f"DEBUG: Converted history item {i} to ChatMessage (Type: {chat_msg.response_type})")
+        else:
+             print(f"DEBUG: Skipping history item {i} as conversion failed or item was empty.")
+
+
+    print(f"Finished processing history. Returning {len(messages_as_api_models)} messages for session {session_id}.")
+    return FetchMessagesResponse(messages=messages_as_api_models)
 
 
 @app.get("/api/hello")
 async def hello():
     """Simple endpoint to check if the API is running."""
-    return {"message": "Hello from FastAPI Session Chat API (No IDs) - Gemini Powered!"}
+    return {"message": "Hello from FastAPI Session Chat API (Stateless) - Gemini Powered!"}
 
-
-# --- Static File Serving ---
-# Assumes the built Vue app is in ../web/dist relative to this file
 static_files_path = os.path.join(os.path.dirname(__file__), "..", "web", "dist")
-
-# Mount the assets directory if it exists
 assets_path = os.path.join(static_files_path, "assets")
 if os.path.exists(assets_path) and os.path.isdir(assets_path):
     app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
@@ -212,8 +203,6 @@ if os.path.exists(assets_path) and os.path.isdir(assets_path):
 else:
     print(f"Warning: Assets directory not found or not a directory at {assets_path}")
 
-
-# Serve index.html for the root path
 @app.get("/")
 async def serve_index():
     index_path = os.path.join(static_files_path, "index.html")
@@ -223,30 +212,27 @@ async def serve_index():
         print(f"Error: index.html not found at {index_path}")
         raise HTTPException(status_code=404, detail="index.html not found")
 
-
-# Serve other static files or index.html for SPA routing
 @app.get("/{full_path:path}")
 async def serve_vue_app(full_path: str):
-    # Prevent serving API routes or paths with '..'
+    # Basic security check
     if full_path.startswith("api/") or ".." in full_path:
         raise HTTPException(status_code=404, detail="Not Found")
 
-    potential_file_path = os.path.join(static_files_path, full_path)
+    potential_file_path = os.path.normpath(os.path.join(static_files_path, full_path))
     index_path = os.path.join(static_files_path, "index.html")
 
-    # Serve the specific file if it exists and is not a directory
+    # Prevent path traversal
+    if not potential_file_path.startswith(os.path.normpath(static_files_path)):
+         raise HTTPException(status_code=404, detail="Not Found")
+
     if os.path.isfile(potential_file_path):
-        return FileResponse(potential_file_path)
-    # Otherwise, serve index.html for SPA routing (if it exists)
+        # Determine mime type (optional but good practice)
+        # import mimetypes
+        # mime_type, _ = mimetypes.guess_type(potential_file_path)
+        return FileResponse(potential_file_path) #, media_type=mime_type or 'application/octet-stream')
     elif os.path.exists(index_path):
+         # Serve index.html for SPA routing
         return FileResponse(index_path, media_type="text/html")
-    # If index.html doesn't exist either, return 404
     else:
-        print(
-            f"Error: index.html not found at {index_path} while trying to serve path {full_path}"
-        )
+        print(f"Error: File or index.html not found for path {full_path}")
         raise HTTPException(status_code=404, detail="Not Found")
-
-
-# --- Run Instruction (for local development) ---
-# Use: uvicorn api.main:app --reload --port 8000
