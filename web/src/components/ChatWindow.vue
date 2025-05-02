@@ -39,14 +39,15 @@ onMounted(() => {
 </script>
 
 <template>
-  <div ref="messageListRef" class="flex-grow overflow-y-auto bg-white p-4 rounded-lg shadow-inner">
+  <div ref="messageListRef" class="flex-grow overflow-y-auto bg-transparent p-2 rounded-lg">
     <ul v-if="messages.length > 0" class="space-y-3">
       <MessageItem v-for="message in messages" :key="message._clientId" :message="message" />
     </ul>
-    <p v-else class="text-center text-gray-500 italic py-4">No messages yet. Send one below!</p>
+    <p v-else class="text-center text-gray-500 dark:text-gray-400 italic py-4">No messages yet. Send one below!</p>
   </div>
 </template>
 
 <style scoped>
-/* Styles remain the same */
+/* No scoped styles needed as Tailwind classes handle styling. */
+/* Scrollbar is styled globally in App.vue */
 </style>

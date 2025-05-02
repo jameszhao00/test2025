@@ -1,27 +1,29 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, watch, computed } from 'vue' // Import computed
 import { storeToRefs } from 'pinia'
-import { v4 as uuidv4 } from 'uuid' // Import uuid
+import { v4 as uuidv4 } from 'uuid'
 import ChatWindow from './components/ChatWindow.vue'
 import ChatInput from './components/ChatInput.vue'
 import ErrorMessage from './components/ErrorMessage.vue'
+import PlanPanel from './components/PlanPanel.vue' // Import the new PlanPanel component
 import { useChatStore } from '@/stores/chat'
-import type { ChatMessage, TextContent } from '@/api-client'
-import type { Ref } from 'vue'; // Explicitly import Ref
+import type { ChatMessage, TextAndWorkflowState, WorkflowPhase } from '@/api-client' // Import WorkflowPhase
+import type { Ref } from 'vue'
 
 // Define the augmented type here if not exported from store
-// Add _isLoadingPlaceholder property
 interface ClientChatMessage extends ChatMessage {
   _clientId: string
-  _isLoadingPlaceholder?: boolean // Flag for the loading message
-  _sendFailed?: boolean // Optional flag for failed user messages
+  _isLoadingPlaceholder?: boolean
+  _sendFailed?: boolean
+  // Ensure content types are potentially null/undefined
+  textContent?: { text: string } | null
+  textAndWorkflowStateContent?: TextAndWorkflowState | null
 }
 
 // --- Store Setup ---
 const chatStore = useChatStore()
-// Use the augmented type for messages ref
 const { messages, error, isLoading, isConnecting, hasSession } = storeToRefs(chatStore) as {
-  messages: Ref<ClientChatMessage[]> // Cast here
+  messages: Ref<ClientChatMessage[]>
   error: Ref<string | null>
   isLoading: Ref<boolean>
   isConnecting: Ref<boolean>
@@ -33,13 +35,30 @@ const { sendMessage, initializeChat, clearSession } = chatStore
 const chatWindowRef = ref<InstanceType<typeof ChatWindow> | null>(null)
 
 // --- Component Logic ---
-const placeholderMessageId = ref<string | null>(null) // To track the temporary message
+const placeholderMessageId = ref<string | null>(null)
+
+// --- Computed Property for Latest Plan ---
+const latestWorkflowState = computed<WorkflowPhase[] | null>(() => {
+  // Iterate backwards through messages to find the most recent plan
+  for (let i = messages.value.length - 1; i >= 0; i--) {
+    const msg = messages.value[i]
+    if (
+      msg.responseType === 'text_and_workflow_state' &&
+      msg.textAndWorkflowStateContent?.workflowState
+    ) {
+      // Return the workflowState of the first matching message found
+      return msg.textAndWorkflowStateContent.workflowState
+    }
+  }
+  // Return null if no message with a plan is found
+  return null
+})
 
 async function handleSendMessage(inputText: string) {
   // 1. --- Add User Message Immediately ---
   const clientUserMessage: ClientChatMessage = {
     _clientId: uuidv4(),
-    sessionId: chatStore.sessionId || 'temp', // Will be updated if new session
+    sessionId: chatStore.sessionId || 'temp',
     role: 'user',
     responseType: 'text',
     textContent: { text: inputText },
@@ -50,14 +69,14 @@ async function handleSendMessage(inputText: string) {
   chatWindowRef.value?.scrollToBottom()
 
   // 2. --- Add Placeholder Assistant Message ---
-  placeholderMessageId.value = uuidv4() // Generate ID for placeholder
+  placeholderMessageId.value = uuidv4()
   const placeholderMessage: ClientChatMessage = {
     _clientId: placeholderMessageId.value,
-    sessionId: chatStore.sessionId || 'temp', // Use current or temp session ID
+    sessionId: chatStore.sessionId || 'temp',
     role: 'assistant',
-    responseType: 'text', // Placeholder type, content doesn't matter
-    textContent: null, // No actual content needed
-    _isLoadingPlaceholder: true, // Mark this as the placeholder
+    responseType: 'text',
+    textContent: null,
+    _isLoadingPlaceholder: true,
   }
   messages.value.push(placeholderMessage)
   console.log(`[App.vue] Added placeholder message with client ID: ${placeholderMessageId.value}`)
@@ -67,12 +86,10 @@ async function handleSendMessage(inputText: string) {
   // 3. --- Send Message and Handle Response ---
   let success = false
   try {
-    // Pass the original user message object (clientUserMessage)
     success = await sendMessage(clientUserMessage)
   } catch (err) {
     console.error('[App.vue] Error calling sendMessage:', err)
     success = false
-    // Error ref should be set by the store's catch block
   } finally {
     // 4. --- Remove Placeholder Message ---
     if (placeholderMessageId.value) {
@@ -80,28 +97,25 @@ async function handleSendMessage(inputText: string) {
         (m) => m._clientId === placeholderMessageId.value,
       )
       if (placeholderIndex !== -1) {
-        messages.value.splice(placeholderIndex, 1) // Remove the placeholder
+        messages.value.splice(placeholderIndex, 1)
         console.log(`[App.vue] Removed placeholder message with client ID: ${placeholderMessageId.value}`)
       }
-      placeholderMessageId.value = null // Reset placeholder tracker
+      placeholderMessageId.value = null
     }
 
-    // 5. --- Handle Send Failure (Optional: Mark User Message) ---
+    // 5. --- Handle Send Failure ---
     if (!success) {
       console.error('[App.vue] sendMessage failed, error should be displayed.')
-      // Find the original user message and mark it as failed
       const failedMsgIndex = messages.value.findIndex(
         (m) => m._clientId === clientUserMessage._clientId,
       )
       if (failedMsgIndex !== -1) {
-        // Ensure the message object allows adding this property
         messages.value[failedMsgIndex]._sendFailed = true
         console.log(`[App.vue] Marked user message ${clientUserMessage._clientId} as failed.`)
       }
     }
-    // isLoading state is managed by the store and should be false now
-    await nextTick() // Ensure DOM updates after removing placeholder
-    chatWindowRef.value?.scrollToBottom() // Scroll again after potential removal/addition
+    await nextTick()
+    chatWindowRef.value?.scrollToBottom()
   }
 }
 
@@ -111,30 +125,30 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  // Cleanup if component is destroyed while loading
+  // Clean up placeholder if component is unmounted unexpectedly
   if (placeholderMessageId.value) {
      const placeholderIndex = messages.value.findIndex(
-        (m) => m._clientId === placeholderMessageId.value,
-      )
-      if (placeholderIndex !== -1) {
-        messages.value.splice(placeholderIndex, 1)
-      }
+       (m) => m._clientId === placeholderMessageId.value,
+     )
+     if (placeholderIndex !== -1) {
+       messages.value.splice(placeholderIndex, 1)
+     }
   }
 })
 
-// Scroll to bottom when messages change
+// Scroll chat window to bottom when messages change
 watch(
   messages,
   async () => {
     await nextTick()
     chatWindowRef.value?.scrollToBottom()
   },
-  { deep: true, immediate: false }, // Don't run immediately on setup
+  { deep: true, immediate: false },
 )
 
-// Watch for isLoading changes specifically to scroll when placeholder is added/removed
+// Scroll chat window when loading state changes (placeholder added/removed)
 watch(isLoading, async (newVal, oldVal) => {
-  if (newVal !== oldVal) { // Only trigger on change
+  if (newVal !== oldVal) {
     await nextTick();
     chatWindowRef.value?.scrollToBottom();
   }
@@ -143,31 +157,38 @@ watch(isLoading, async (newVal, oldVal) => {
 </script>
 
 <template>
-  <div class="flex flex-col h-screen bg-gray-100">
+  <div class="flex flex-col h-screen bg-gray-50 relative">
     <h1
-      class="flex-shrink-0 p-4 bg-white text-xl font-semibold text-center text-gray-800 shadow-sm"
+      class="flex-shrink-0 p-4 bg-white text-xl font-semibold text-center text-gray-800 z-20 border-b border-gray-100"
     >
-      Chatty LLM (No IDs) - Inline Loading
+      AIFlow Agent
     </h1>
 
-    <div class="flex flex-col flex-grow overflow-hidden p-4 space-y-4">
-      <div
-        v-if="isConnecting && messages.length === 0"
-        class="flex-shrink-0 text-center text-gray-500 p-2"
-      >
-        Loading chat history...
-      </div>
+    <div class="flex flex-grow overflow-hidden relative">
+      <PlanPanel
+        :workflow-state="latestWorkflowState"
+        class="absolute top-0 left-0 z-10"
+        />
 
-      <ErrorMessage :message="error" class="flex-shrink-0" />
+      <div class="flex flex-col flex-grow overflow-hidden p-4 space-y-4 lg:ml-130">
+        <div
+          v-if="isConnecting && messages.length === 0"
+          class="flex-shrink-0 text-center text-gray-500 p-2"
+        >
+          Loading chat history...
+        </div>
 
-      <ChatWindow
-        ref="chatWindowRef"
-        :messages="messages"
-        class="flex-grow overflow-y-auto min-h-0"
-      />
+        <ErrorMessage :message="error" class="flex-shrink-0" />
 
-      <div class="flex-shrink-0 space-y-2">
-        <ChatInput @send-message="handleSendMessage" :disabled="isLoading || isConnecting" />
+        <ChatWindow
+          ref="chatWindowRef"
+          :messages="messages"
+          class="flex-grow overflow-y-auto min-h-0 custom-scrollbar"
+        />
+
+        <div class="flex-shrink-0 space-y-2">
+          <ChatInput @send-message="handleSendMessage" :disabled="isLoading || isConnecting" />
+        </div>
       </div>
     </div>
   </div>
@@ -181,21 +202,23 @@ body {
   margin: 0;
   font-family: 'Inter', sans-serif;
   overflow: hidden; /* Prevent body scrollbars */
+  background-color: #f9fafb; /* bg-gray-50 - Ensure light background */
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 8px;
+/* Minimalist Scrollbar styling (Light theme only) */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px; /* Thinner scrollbar */
+  height: 5px;
 }
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent; /* Invisible track */
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #d1d5db; /* Light gray thumb */
   border-radius: 10px;
 }
-::-webkit-scrollbar-thumb {
-  background: #c5c5c5;
-  border-radius: 10px;
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af; /* Slightly darker on hover */
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
-}
+
 </style>

@@ -11,8 +11,6 @@ import type {
 import TextAndWorkflowStateMessage from './TextAndWorkflowStateMessage.vue' // Import the new component
 
 // Define the augmented ClientChatMessage type locally
-// This adds client-side properties (_clientId, _isLoadingPlaceholder, _sendFailed)
-// and makes all content types optional to handle different response types.
 interface ClientChatMessage extends ChatMessage {
   _clientId: string
   _isLoadingPlaceholder?: boolean // Flag for the loading message placeholder
@@ -31,7 +29,6 @@ const props = defineProps<{
 const isUser = props.message.role === 'user'
 
 // --- Helper function to get the relevant content object based on responseType ---
-// This simplifies accessing the correct content field in the template
 const relevantContent = computed(() => {
   // Return null if it's the loading placeholder message
   if (props.message._isLoadingPlaceholder) {
@@ -54,16 +51,17 @@ const relevantContent = computed(() => {
 <template>
   <li class="flex" :class="[isUser ? 'justify-end' : 'justify-start']">
     <div
-      class="px-4 py-2 rounded-lg max-w-[85%] sm:max-w-[75%] text-sm shadow-sm flex items-start"
+      class="px-4 py-2 rounded-lg max-w-[85%] sm:max-w-[75%] text-sm flex items-start"
       :class="[
         isUser
-          ? 'bg-blue-500 text-white rounded-br-none dark:bg-blue-600' /* User message styling */
-          : 'bg-gray-200 text-gray-800 rounded-bl-none dark:bg-gray-700 dark:text-gray-200', /* Assistant message styling */
+          ? 'bg-blue-500 text-white rounded-br-none' /* User message styling */
+          : 'bg-gray-200 text-gray-800 rounded-bl-none', /* Assistant message styling */
         // Add subtle opacity if the user message failed to send
         isUser && message._sendFailed ? 'opacity-70' : '',
       ]"
     >
-      <div v-if="message._isLoadingPlaceholder" class="flex space-x-1.5 items-center h-5 text-current"> <span class="sr-only">Loading...</span>
+      <div v-if="message._isLoadingPlaceholder" class="flex space-x-1.5 items-center h-5 text-current">
+        <span class="sr-only">Loading...</span>
           <div class="h-1.5 w-1.5 bg-current rounded-full animate-bounce [animation-delay:-0.3s]"></div>
           <div class="h-1.5 w-1.5 bg-current rounded-full animate-bounce [animation-delay:-0.15s]"></div>
           <div class="h-1.5 w-1.5 bg-current rounded-full animate-bounce"></div>
@@ -81,9 +79,10 @@ const relevantContent = computed(() => {
           v-else-if="message.responseType === 'text_and_workflow_state' && relevantContent"
           :content="relevantContent as TextAndWorkflowState"
           :is-user-message="isUser"
+          :class="[isUser ? 'prose prose-invert-blue' : 'prose prose-gray']"
         />
 
-        <span v-else class="italic" :class="isUser ? 'text-blue-100' : 'text-red-600 dark:text-red-400'">
+        <span v-else class="italic" :class="isUser ? 'text-blue-100' : 'text-red-600'">
           <template v-if="isUser && message._sendFailed">
             (Failed to send)
           </template>
@@ -93,7 +92,8 @@ const relevantContent = computed(() => {
         </span>
       </template>
 
-      <svg v-if="isUser && message._sendFailed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 ml-2 text-red-300 flex-shrink-0 self-center"> <path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5Zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd" />
+      <svg v-if="isUser && message._sendFailed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 ml-2 text-red-300 flex-shrink-0 self-center">
+        <path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5Zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clip-rule="evenodd" />
       </svg>
 
     </div>
@@ -101,25 +101,19 @@ const relevantContent = computed(() => {
 </template>
 
 <style>
-/* Global bounce animation definition */
-@keyframes bounce {
-  0%, 100% {
-    transform: translateY(-25%);
-    animation-timing-function: cubic-bezier(0.8,0,1,1);
-  }
-  50% {
-    transform: none;
-    animation-timing-function: cubic-bezier(0,0,0.2,1);
-  }
-}
-.animate-bounce {
-  animation: bounce 1s infinite;
-}
+/* Global bounce animation defined in tailwind.config.js */
+/* If not using config, define it here */
+/*
+@keyframes bounce { ... }
+.animate-bounce { ... }
+*/
 
 /* Base prose styles (apply regardless of theme) */
+/* Applied via class binding in TextAndWorkflowStateMessage */
 .prose {
   color: inherit; /* Inherit color from parent bubble */
   line-height: 1.6; /* Improve readability */
+  max-width: none; /* Override default prose max-width */
 }
 .prose :where(h1,h2,h3,h4,h5,h6) { /* Target headings */
   color: inherit;
@@ -132,7 +126,7 @@ const relevantContent = computed(() => {
 .prose :where(p) { margin-top: 0.75em; margin-bottom: 0.75em; }
 .prose :where(strong) { font-weight: 600; }
 .prose :where(em) { font-style: italic; }
-.prose :where(ul, ol) { margin-left: 1.5em; margin-top: 0.75em; margin-bottom: 0.75em; }
+.prose :where(ul, ol) { margin-left: 1.5em; margin-top: 0.75em; margin-bottom: 0.75em; padding-left: 0; } /* Reset padding */
 .prose :where(li) { margin-top: 0.25em; margin-bottom: 0.25em; }
 .prose :where(li > p) { margin-top: 0.25em; margin-bottom: 0.25em; } /* Paragraphs inside list items */
 .prose :where(pre) {
@@ -182,7 +176,7 @@ const relevantContent = computed(() => {
 .prose-invert-blue :where(blockquote) { border-left-color: rgba(255, 255, 255, 0.5); color: white; opacity: 0.9; }
 .prose-invert-blue :where(a) { color: white; }
 
-/* Styles for prose inside the assistant's gray bubble */
+/* Styles for prose inside the assistant's gray bubble (Light theme) */
 .prose-gray { color: #1f2937; } /* text-gray-800 */
 .prose-gray :where(pre) { background-color: #e5e7eb; } /* bg-gray-200 */
 .prose-gray :where(code):not(:where(pre *)) { background-color: #e5e7eb; } /* bg-gray-200 */
@@ -190,12 +184,6 @@ const relevantContent = computed(() => {
 .prose-gray :where(a) { color: #1d4ed8; } /* text-blue-700 */
 .prose-gray :where(a:hover) { color: #2563eb; } /* text-blue-600 */
 
-/* Dark mode adjustments for gray prose */
-.dark .prose-gray { color: #d1d5db; } /* text-gray-300 */
-.dark .prose-gray :where(pre) { background-color: #4b5563; } /* bg-gray-600 */
-.dark .prose-gray :where(code):not(:where(pre *)) { background-color: #4b5563; } /* bg-gray-600 */
-.dark .prose-gray :where(blockquote) { border-left-color: #6b7280; color: #9ca3af; } /* border-gray-500, text-gray-400 */
-.dark .prose-gray :where(a) { color: #60a5fa; } /* text-blue-400 */
-.dark .prose-gray :where(a:hover) { color: #93c5fd; } /* text-blue-300 */
+/* Dark mode styles are no longer needed here as dark mode is disabled */
 
 </style>

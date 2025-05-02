@@ -80,34 +80,6 @@ const formatStatusText = (status: WorkflowStatus) => {
 <template>
     <div class="space-y-4 w-full text-sm">
         <p class="whitespace-pre-wrap break-words">{{ content.text }}</p>
-
-        <div class="space-y-3 border-t pt-3 mt-3"
-            :class="isUserMessage ? 'border-white/30' : 'border-gray-300 dark:border-gray-600'">
-            <h4 class="font-semibold text-xs uppercase tracking-wider opacity-80 mb-2">Plan</h4>
-            <div v-for="(phase, phaseIndex) in content.workflowState" :key="`phase-${phaseIndex}`"
-                class="space-y-1 pl-2">
-                <p class="font-medium opacity-95 cursor-pointer flex items-center hover:opacity-100 transition-opacity"
-                    @click="togglePhase(phaseIndex)">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
-                        class="w-4 h-4 mr-1 transition-transform duration-200 ease-in-out flex-shrink-0"
-                        :class="{ 'rotate-90': !collapsedPhases[phaseIndex] }">
-
-                        <path fill-rule="evenodd"
-                            d="M7.21 14.77a.75.75 0 0 1 .02-1.06L11.168 10 7.23 6.29a.75.75 0 1 1 1.04-1.08l4.5 4.25a.75.75 0 0 1 0 1.08l-4.5 4.25a.75.75 0 0 1-1.06-.02Z"
-                            clip-rule="evenodd" />
-
-                    </svg>
-                    {{ phaseIndex + 1 }}. {{ phase.description }}
-                </p>
-                <ul v-if="!collapsedPhases[phaseIndex]" class="space-y-1 pl-7 transition-all duration-300 ease-in-out">
-                    <li v-for="(step, stepIndex) in phase.steps" :key="`phase-${phaseIndex}-step-${stepIndex}`"
-                        class="flex items-center text-xs p-1.5 rounded border" :class="getStatusClasses(step.status)">
-                        <span v-html="getStatusIcon(step.status)" class="flex-shrink-0"></span>
-                        <span>{{ step.description }}</span>
-                    </li>
-                </ul>
-            </div>
-        </div>
     </div>
 </template>
 

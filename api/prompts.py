@@ -134,7 +134,7 @@ Users often request to "speed up LLM prompts". This usually means they want to r
     * **Gemini API calls:** None directly; analysis and conversation.
     * **Agent Action:** *"Here are the results for [Chosen Optimization]: Latency is now [New X ms], and quality is [New Z]. This [meets/doesn't meet] the target. Shall we proceed with this, or would you like to explore another option like [Suggest Next Optimization]?"* (Iterate steps 1-3 as needed).
 
-### Phase 4: Try Fine-Tuning (If Necessary)
+### Phase 4: Try Fine-Tuning / LoRA
 
 **Goal:** Explore fine-tuning if other optimizations are insufficient, especially if quality dropped too much or needs task-specific improvement.
 
