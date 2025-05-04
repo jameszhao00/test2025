@@ -1,0 +1,103 @@
+{
+    "goal_description": "Book a flight from NYC to SFO.",
+    "golden_trace": [
+        {
+            "type": "user",
+            "text": "book flight from NYC to SFO tomorrow."
+        },
+        {
+            "type": "agent",
+            "text": "Okay, I can help with that. Could you please provide the specific date for 'tomorrow'?"
+        },
+        {
+            "type": "user",
+            "text": "September 15th, 2024."
+        },
+        {
+            "type": "tool_interaction",
+            "name": "search_flights",
+            "args": {
+                "origin": "JFK",
+                "destination": "SFO",
+                "departure_date": "2024-09-15"
+            },
+            "result": [
+                {
+                    "flight_id": "UA123",
+                    "airline": "UA",
+                    "departure_time": "09:30",
+                    "arrival_time": "12:15",
+                    "price": 550
+                },
+                {
+                    "flight_id": "AA456",
+                    "airline": "AA",
+                    "departure_time": "11:00",
+                    "arrival_time": "13:45",
+                    "price": 580
+                }
+            ]
+        },
+        {
+            "type": "agent",
+            "text": "Alright, I found a couple of flights for you on September 15th, 2024 from JFK to SFO: Flight UA123 departing at 09:30 for $550, and AA456 departing at 11:00 for $580. Which one would you like?"
+        },
+        {
+            "type": "user",
+            "text": "Great, please book flight UA123."
+        },
+        {
+            "type": "tool_interaction",
+            "name": "book_flight",
+            "args": {
+                "flight_id": "UA123"
+            },
+            "result": {
+                "booking_id": "BK12345",
+                "status": "confirmed",
+                "message": "Flight UA123 booked successfully."
+            }
+        },
+        {
+            "type": "agent",
+            "text": "Excellent! Your flight UA123 is confirmed. Your booking ID is BK12345. Have a great trip!"
+        }
+    ],
+    "assertions": [
+        {
+            "name": "outcome_simple_booking_success",
+            "description": "Verify the correct flight was successfully booked and confirmed.",
+            "prompt_template": "Did the agent successfully book a flight? Answer only YES or NO.",
+            "expected_response": "YES",
+            "is_outcome_check": true
+        },
+        {
+            "name": "trajectory_clarify_date",
+            "description": "Agent asks for the specific date when only 'tomorrow' is given.",
+            "prompt_template": "The user initially asked for a flight 'tomorrow'. Did the Agent, in its *first* response, ask the user to provide a specific date? Answer only YES or NO.",
+            "expected_response": "YES",
+            "is_outcome_check": false
+        },
+        {
+            "name": "trajectory_search_intent",
+            "description": "Agent used search tool with correct intent.",
+            "prompt_template": "Based on the user's request, did the agent invoke the flight search tool with arguments matching this origin, destination, and date? Answer only YES or NO.",
+            "expected_response": "YES",
+            "is_outcome_check": false
+        },
+        {
+            "name": "trajectory_present_options",
+            "description": "Agent presented flight options clearly after searching.",
+            "prompt_template": "After searching for flights, did the Agent present one or more specific flight options to the user, including identifiable details like flight numbers/IDs and prices? Answer only YES or NO.",
+            "expected_response": "YES",
+            "is_outcome_check": false
+        },
+        {
+            "name": "trajectory_book_intent",
+            "description": "Agent used booking tool with the user's chosen flight (UA123).",
+            "prompt_template": "Did the agent invoke the flight booking tool?",
+            "expected_response": "YES",
+            "is_outcome_check": false
+        }
+    ]
+}
