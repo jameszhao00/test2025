@@ -1,103 +1,103 @@
 {
-    "goal_description": "Book a flight from NYC to SFO.",
+    "goal_description": "book the cheapest flight from SFO to JFK for tomorrow",
+    "initial_state": {
+      "current_date": "2024-10-26"
+    },
     "golden_trace": [
-        {
-            "type": "user",
-            "text": "book flight from NYC to SFO tomorrow."
+      {
+        "type": "user",
+        "text": "book a flight from SFO to NYC for tomorrow."
+      },
+      {
+        "type": "agent",
+        "text": "Okay, I can help with that. Searching for flights from SFO to JFK for tomorrow, October 27th, 2024."
+      },
+      {
+        "type": "tool_interaction",
+        "name": "search_flights",
+        "args": {
+          "origin": "SFO",
+          "destination": "JFK",
+          "departure_date": "2024-10-27"
         },
-        {
-            "type": "agent",
-            "text": "Okay, I can help with that. Could you please provide the specific date for 'tomorrow'?"
+        "result": [
+          {
+            "flight_id": "UA456",
+            "airline": "UA",
+            "departure_time": "09:15",
+            "arrival_time": "17:30",
+            "price": 420
+          },
+          {
+            "flight_id": "AA123",
+            "airline": "AA",
+            "departure_time": "11:00",
+            "arrival_time": "19:15",
+            "price": 395
+          }
+        ]
+      },
+      {
+        "type": "agent",
+        "text": "I found a couple of flights for tomorrow, October 27th. UA456 departs at 9:15 AM for $420, and AA123 departs at 11:00 AM for $395. Do either of those work for you?"
+      },
+      {
+        "type": "user",
+        "text": "Yes, the AA123 flight sounds good. Please book that one."
+      },
+      {
+        "type": "agent",
+        "text": "Alright, booking flight AA123 from SFO to JFK for tomorrow, October 27th."
+      },
+      {
+        "type": "tool_interaction",
+        "name": "book_flight",
+        "args": {
+          "flight_id": "AA123"
         },
-        {
-            "type": "user",
-            "text": "September 15th, 2024."
-        },
-        {
-            "type": "tool_interaction",
-            "name": "search_flights",
-            "args": {
-                "origin": "JFK",
-                "destination": "SFO",
-                "departure_date": "2024-09-15"
-            },
-            "result": [
-                {
-                    "flight_id": "UA123",
-                    "airline": "UA",
-                    "departure_time": "09:30",
-                    "arrival_time": "12:15",
-                    "price": 550
-                },
-                {
-                    "flight_id": "AA456",
-                    "airline": "AA",
-                    "departure_time": "11:00",
-                    "arrival_time": "13:45",
-                    "price": 580
-                }
-            ]
-        },
-        {
-            "type": "agent",
-            "text": "Alright, I found a couple of flights for you on September 15th, 2024 from JFK to SFO: Flight UA123 departing at 09:30 for $550, and AA456 departing at 11:00 for $580. Which one would you like?"
-        },
-        {
-            "type": "user",
-            "text": "Great, please book flight UA123."
-        },
-        {
-            "type": "tool_interaction",
-            "name": "book_flight",
-            "args": {
-                "flight_id": "UA123"
-            },
-            "result": {
-                "booking_id": "BK12345",
-                "status": "confirmed",
-                "message": "Flight UA123 booked successfully."
-            }
-        },
-        {
-            "type": "agent",
-            "text": "Excellent! Your flight UA123 is confirmed. Your booking ID is BK12345. Have a great trip!"
+        "result": {
+          "booking_id": "BK78910",
+          "status": "confirmed",
+          "message": "Flight AA123 booked successfully."
         }
+      },
+      {
+        "type": "agent",
+        "text": "Great! Your flight AA123 is confirmed for tomorrow, October 27th. Your booking ID is BK78910. Anything else?"
+      },
+      {
+        "type": "user",
+        "text": "No, that's all. Thanks!"
+      }
     ],
     "assertions": [
-        {
-            "name": "outcome_simple_booking_success",
-            "description": "Verify the correct flight was successfully booked and confirmed.",
-            "prompt_template": "Did the agent successfully book a flight? Answer only YES or NO.",
-            "expected_response": "YES",
-            "is_outcome_check": true
-        },
-        {
-            "name": "trajectory_clarify_date",
-            "description": "Agent asks for the specific date when only 'tomorrow' is given.",
-            "prompt_template": "The user initially asked for a flight 'tomorrow'. Did the Agent, in its *first* response, ask the user to provide a specific date? Answer only YES or NO.",
-            "expected_response": "YES",
-            "is_outcome_check": false
-        },
-        {
-            "name": "trajectory_search_intent",
-            "description": "Agent used search tool with correct intent.",
-            "prompt_template": "Based on the user's request, did the agent invoke the flight search tool with arguments matching this origin, destination, and date? Answer only YES or NO.",
-            "expected_response": "YES",
-            "is_outcome_check": false
-        },
-        {
-            "name": "trajectory_present_options",
-            "description": "Agent presented flight options clearly after searching.",
-            "prompt_template": "After searching for flights, did the Agent present one or more specific flight options to the user, including identifiable details like flight numbers/IDs and prices? Answer only YES or NO.",
-            "expected_response": "YES",
-            "is_outcome_check": false
-        },
-        {
-            "name": "trajectory_book_intent",
-            "description": "Agent used booking tool with the user's chosen flight (UA123).",
-            "prompt_template": "Did the agent invoke the flight booking tool?",
-            "expected_response": "YES",
-            "is_outcome_check": false
-        }
+      {
+        "name": "Correct Date Interpretation",
+        "description": "Checks if the agent correctly interpreted 'tomorrow' based on the initial state's current_date and used the absolute date in the search.",
+        "prompt_template": "Based on the conversation and knowing the current date was 2024-10-26, did the agent correctly search for flights on the absolute date 2024-10-27 when the user asked for 'tomorrow'?",
+        "expected_response": "YES",
+        "is_outcome_check": false
+      },
+      {
+        "name": "Flight Offered",
+        "description": "Checks if the agent offered flight options after searching.",
+        "prompt_template": "Did the agent present flight options (like specific flight IDs or times/prices) to the user after the initial search?",
+        "expected_response": "YES",
+        "is_outcome_check": false
+      },
+      {
+        "name": "Correct Flight Booked",
+        "description": "Checks if the agent attempted to book the flight the user selected (AA123).",
+        "prompt_template": "Did the agent call the 'book_flight' tool with the flight ID 'AA123' after the user requested it?",
+        "expected_response": "YES",
+        "is_outcome_check": false
+      },
+      {
+        "name": "Booking Confirmed",
+        "description": "Checks if the agent confirmed the booking and provided a booking ID.",
+        "prompt_template": "Did the agent ultimately confirm the flight booking and provide a booking ID (like BK*)?",
+        "expected_response": "YES",
+        "is_outcome_check": true
+      }
     ]
-}
+  }

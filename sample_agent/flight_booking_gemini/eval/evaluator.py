@@ -87,7 +87,7 @@ Your response:"""
                 contents=prompt,
                 config=genai_types.GenerateContentConfig(
                     temperature=0.7,
-                    thinking_config=types.ThinkingConfig(thinking_budget=0),
+                    # thinking_config=types.ThinkingConfig(thinking_budget=0),
                 ),
             )
             if response.candidates:

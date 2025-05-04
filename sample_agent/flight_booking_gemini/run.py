@@ -1,3 +1,4 @@
+# run.py
 import argparse
 import logging
 import os
@@ -6,12 +7,13 @@ from pathlib import Path
 from dotenv import load_dotenv
 from termcolor import colored
 from pydantic import ValidationError
+import datetime # Import datetime
 
 from agent.agent import FlightBookingAgent
 from eval.evaluator import GeminiEvaluator
 from eval.schemas import TestCaseModel
 from eval.assertion_types import LLMCheckAssertion
-from typing import List, Optional
+from typing import List, Optional, Dict, Any # Added Dict, Any
 
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY")
@@ -30,13 +32,20 @@ def run_interactive_agent():
     """Runs the agent in interactive chat mode."""
     log.info("Starting interactive agent...")
     try:
-        agent = FlightBookingAgent(api_key=GEMINI_API_KEY)
+        # Create default state for interactive mode
+        interactive_state = {
+            "current_date": datetime.date.today().isoformat()
+        }
+        agent = FlightBookingAgent(api_key=GEMINI_API_KEY, initial_state=interactive_state)
         print(
             colored(
                 "Agent: Hello! How can I help you with your flight booking today?",
                 "blue",
             )
         )
+        # Optional: Inform user about the assumed date
+        print(colored(f"(Assuming today is {interactive_state['current_date']})", "cyan"))
+
         while True:
             user_input = input(colored("You: ", "green"))
             if user_input.lower() in ["quit", "exit", "bye"]:
@@ -44,7 +53,7 @@ def run_interactive_agent():
                 break
             if not user_input:
                 continue
-            agent.interact(user_input)
+            agent.interact(user_input) # interact handles history internally now
     except Exception as e:
         logging.exception("An error occurred during interactive session.")
         print(colored(f"Error: {e}", "red"))
@@ -58,7 +67,8 @@ def load_test_case(test_case_name: str) -> Optional[TestCaseModel]:
         log.error(f"Test case file not found: {file_path}")
         available_cases = [f.stem for f in test_case_dir.glob("*.json")]
         print(colored(f"Error: Test case '{test_case_name}' not found.", "red"))
-        print(f"Available cases: {', '.join(available_cases)}")
+        if available_cases:
+             print(f"Available cases: {', '.join(available_cases)}")
         return None
     try:
         test_case_model = TestCaseModel.parse_file(file_path)
@@ -95,14 +105,22 @@ def run_evaluation(test_case_name: str, simulate_user: bool):
         return
 
     goal_desc = test_case_data.goal_description
+    # Extract initial state from test case data
+    initial_agent_state = test_case_data.initial_state or {} # Use empty dict if None
 
     golden_trace_steps = [step.dict() for step in test_case_data.golden_trace]
 
     assertions: List[LLMCheckAssertion] = []
     for assertion_model in test_case_data.assertions:
         try:
-
-            assertions.append(LLMCheckAssertion(**assertion_model.dict()))
+            # Pass only the necessary fields from the model
+            assertions.append(LLMCheckAssertion(
+                name=assertion_model.name,
+                description=assertion_model.description,
+                prompt_template=assertion_model.prompt_template, # This is the specific part now
+                expected_response=assertion_model.expected_response,
+                is_outcome_check=assertion_model.is_outcome_check
+            ))
         except Exception as e:
             log.error(
                 f"Failed to instantiate LLMCheckAssertion for '{assertion_model.name}': {e}"
@@ -125,15 +143,19 @@ def run_evaluation(test_case_name: str, simulate_user: bool):
         return
 
     try:
-        agent = FlightBookingAgent(api_key=GEMINI_API_KEY)
+        # Instantiate agent with the initial state from the test case
+        agent = FlightBookingAgent(api_key=GEMINI_API_KEY, initial_state=initial_agent_state)
         evaluator = GeminiEvaluator(api_key=GEMINI_API_KEY)
 
+        # Pass goal description and potentially state to evaluator if needed for simulation/assertions
         results = evaluator.evaluate_trace(
             agent=agent,
             golden_trace=golden_trace_steps,
             assertions=assertions,
             goal_description=goal_desc,
             simulate_user=simulate_user,
+            # Pass agent_state if evaluator needs it (e.g., for simulation context)
+            # agent_initial_state=initial_agent_state
         )
         evaluator.display_results(results)
     except Exception as e:
