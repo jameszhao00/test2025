@@ -1,5 +1,5 @@
 {
-    "goal_description": "book the cheapest flight from SFO to JFK for tomorrow",
+    "goal_description": "Book the cheapest flight from SFO to JFK for tomorrow",
     "initial_state": {
       "current_date": "2024-10-26"
     },
@@ -43,7 +43,7 @@
       },
       {
         "type": "user",
-        "text": "Yes, the AA123 flight sounds good. Please book that one."
+        "text": "book AA123"
       },
       {
         "type": "agent",
@@ -67,35 +67,42 @@
       },
       {
         "type": "user",
-        "text": "No, that's all. Thanks!"
+        "text": "no"
       }
     ],
     "assertions": [
       {
         "name": "Correct Date Interpretation",
         "description": "Checks if the agent correctly interpreted 'tomorrow' based on the initial state's current_date and used the absolute date in the search.",
-        "prompt_template": "Based on the conversation and knowing the current date was 2024-10-26, did the agent correctly search for flights on the absolute date 2024-10-27 when the user asked for 'tomorrow'?",
+        "prompt_template": "Based on the conversation and knowing the current date was 2024-10-26, did the agent correctly search for flights on the absolute date 2024-10-27 when the user asked for 'tomorrow'? If the answer is yes, answer YES. If the answer is no, answer NO with a reason.",
+        "expected_response": "YES",
+        "is_outcome_check": false
+      },
+      {
+        "name": "Infers date",
+        "description": "Checks the agent infers the date automatically.",
+        "prompt_template": "Did the agent infer the date using the word 'tomorrow'?? If the answer is yes, answer YES. If the answer is no, answer NO with a reason.",
         "expected_response": "YES",
         "is_outcome_check": false
       },
       {
         "name": "Flight Offered",
         "description": "Checks if the agent offered flight options after searching.",
-        "prompt_template": "Did the agent present flight options (like specific flight IDs or times/prices) to the user after the initial search?",
+        "prompt_template": "Did the agent present flight options (like specific flight IDs or times/prices) to the user after the initial search? If the answer is yes, answer YES. If the answer is no, answer NO with a reason.",
         "expected_response": "YES",
         "is_outcome_check": false
       },
       {
         "name": "Correct Flight Booked",
         "description": "Checks if the agent attempted to book the flight the user selected (AA123).",
-        "prompt_template": "Did the agent call the 'book_flight' tool with the flight ID 'AA123' after the user requested it?",
+        "prompt_template": "Did the agent call the 'book_flight' tool with the flight ID 'AA123' after the user requested it? If the answer is yes, answer YES. If the answer is no, answer NO with a reason.",
         "expected_response": "YES",
         "is_outcome_check": false
       },
       {
         "name": "Booking Confirmed",
         "description": "Checks if the agent confirmed the booking and provided a booking ID.",
-        "prompt_template": "Did the agent ultimately confirm the flight booking and provide a booking ID (like BK*)?",
+        "prompt_template": "Did the agent ultimately confirm the flight booking and provide a booking ID (like BK*)? If the answer is yes, answer YES. If the answer is no, answer NO with a reason.",
         "expected_response": "YES",
         "is_outcome_check": true
       }

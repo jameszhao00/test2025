@@ -2,8 +2,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Union, Literal, Annotated, Optional # Added Optional
 
-# ... (Keep existing models: UserTurnModel, AgentTurnModel, ToolInteractionModel, LLMCheckAssertionModel) ...
-
 class UserTurnModel(BaseModel):
     type: Literal["user"] = "user"
     text: str
@@ -22,7 +20,6 @@ TraceStepModel = Union[UserTurnModel, AgentTurnModel, ToolInteractionModel]
 
 class LLMCheckAssertionModel(BaseModel):
     name: str
-    description: str
     prompt_template: str # This is now the specific question/instruction part
     expected_response: str = "YES"
     is_outcome_check: bool = False

@@ -1,0 +1,243 @@
+{
+  "goal_description": "Find flights from JFK to London tomorrow. It doesn't matter which london airport. Just book the cheapest option.",
+  "initial_state": {
+    "current_date": "2025-05-04"
+  },
+  "golden_trace": [
+    {
+      "type": "user",
+      "text": "nyc to london flights tomorrow"
+    },
+    {
+      "type": "agent",
+      "text": "OK. I can help you search for flights from NYC to London.\n\nTo give you the most accurate results, could you please specify which airports you'd like to use for departure in NYC (e.g., JFK, LGA, EWR) and arrival in London (e.g., LHR, LGW, STN)?\n\nAlso, the current date is May 4th, 2025, so \"tomorrow\" would be May 5th, 2025. Is that correct?"
+    },
+    {
+      "type": "user",
+      "text": "JFK, to all airports in london. "
+    },
+    {
+      "type": "agent",
+      "text": "Thanks! I can search for flights from JFK. However, I need a specific arrival airport in London. The main airports are Heathrow (LHR), Gatwick (LGW), and Stansted (STN).\n\nCould you please specify which London airport you'd like to fly into? And just to confirm, you want to search for flights for tomorrow, May 5th, 2025?"
+    },
+    {
+      "type": "user",
+      "text": "can you check all airports"
+    },
+    {
+      "type": "tool_interaction",
+      "name": "search_flights",
+      "args": {
+        "destination": "LHR",
+        "departure_date": "2025-05-05",
+        "origin": "JFK"
+      },
+      "result": [
+        {
+          "flight_id": "SW879",
+          "airline": "SW",
+          "departure_time": "18:15",
+          "arrival_time": "23:15",
+          "price": 455
+        },
+        {
+          "flight_id": "DL487",
+          "airline": "DL",
+          "departure_time": "06:15",
+          "arrival_time": "12:00",
+          "price": 372
+        }
+      ]
+    },
+    {
+      "type": "agent",
+      "text": "OK. I found two flights from JFK to London Heathrow (LHR) for tomorrow, May 5th, 2025:\n\n*   **SW879:** Departing at 18:15, arriving at 23:15, for $455.\n*   **DL487:** Departing at 06:15, arriving at 12:00, for $372.\n\nI will now check for flights to London Gatwick (LGW) and London Stansted (STN).\n"
+    },
+    {
+      "type": "user",
+      "text": "ok"
+    },
+    {
+      "type": "tool_interaction",
+      "name": "search_flights",
+      "args": {
+        "origin": "JFK",
+        "departure_date": "2025-05-05",
+        "destination": "LGW"
+      },
+      "result": [
+        {
+          "flight_id": "AA464",
+          "airline": "AA",
+          "departure_time": "20:45",
+          "arrival_time": "00:30",
+          "price": 669
+        },
+        {
+          "flight_id": "SW698",
+          "airline": "SW",
+          "departure_time": "07:15",
+          "arrival_time": "13:30",
+          "price": 712
+        },
+        {
+          "flight_id": "SW831",
+          "airline": "SW",
+          "departure_time": "12:15",
+          "arrival_time": "17:15",
+          "price": 733
+        }
+      ]
+    },
+    {
+      "type": "agent",
+      "text": "OK. I found these flights from JFK to London Gatwick (LGW) for tomorrow, May 5th, 2025:\n\n*   **AA464:** Departing at 20:45, arriving at 00:30, for $669.\n*   **SW698:** Departing at 07:15, arriving at 13:30, for $712.\n*   **SW831:** Departing at 12:15, arriving at 17:15, for $733.\n\nI will now check for flights to London Stansted (STN)."
+    },
+    {
+      "type": "user",
+      "text": "ok"
+    },
+    {
+      "type": "tool_interaction",
+      "name": "search_flights",
+      "args": {
+        "departure_date": "2025-05-05",
+        "destination": "STN",
+        "origin": "JFK"
+      },
+      "result": [
+        {
+          "flight_id": "DL692",
+          "airline": "DL",
+          "departure_time": "12:15",
+          "arrival_time": "16:45",
+          "price": 494
+        },
+        {
+          "flight_id": "SW120",
+          "airline": "SW",
+          "departure_time": "06:00",
+          "arrival_time": "09:15",
+          "price": 353
+        },
+        {
+          "flight_id": "DL919",
+          "airline": "DL",
+          "departure_time": "09:30",
+          "arrival_time": "12:00",
+          "price": 463
+        },
+        {
+          "flight_id": "AA769",
+          "airline": "AA",
+          "departure_time": "14:45",
+          "arrival_time": "18:15",
+          "price": 429
+        }
+      ]
+    },
+    {
+      "type": "agent",
+      "text": "OK. I have now checked flights from JFK to London Stansted (STN) for tomorrow, May 5th, 2025 as well.\n\nHere are the flights I found from JFK to London for tomorrow, May 5th, 2025:\n\n**To London Heathrow (LHR):**\n*   **SW879:** Departing at 18:15, arriving at 23:15, for $455.\n*   **DL487:** Departing at 06:15, arriving at 12:00, for $372.\n\n**To London Gatwick (LGW):**\n*   **AA464:** Departing at 20:45, arriving at 00:30, for $669.\n*   **SW698:** Departing at 07:15, arriving at 13:30, for $712.\n*   **SW831:** Departing at 12:15, arriving at 17:15, for $733.\n\n**To London Stansted (STN):**\n*   **DL692:** Departing at 12:15, arriving at 16:45, for $494.\n*   **SW120:** Departing at 06:00, arriving at 09:15, for $353.\n*   **DL919:** Departing at 09:30, arriving at 12:00, for $463.\n*   **AA769:** Departing at 14:45, arriving at 18:15, for $429.\n\nLet me know if you would like to book any of these flights!"
+    },
+    {
+      "type": "user",
+      "text": "which one is the cheapest"
+    },
+    {
+      "type": "agent",
+      "text": "Based on the search results, the cheapest flight from JFK to London tomorrow, May 5th, 2025, is **SW120** from JFK to London Stansted (STN).\n\nIt departs at 06:00, arrives at 09:15, and costs $353."
+    },
+    {
+      "type": "user",
+      "text": "book cheapest"
+    },
+    {
+      "type": "tool_interaction",
+      "name": "book_flight",
+      "args": {
+        "flight_id": "SW120"
+      },
+      "result": {
+        "booking_id": null,
+        "status": "failed",
+        "message": "Could not book flight SW120. Please try again or select a different flight."
+      }
+    },
+    {
+      "type": "agent",
+      "text": "I'm sorry, I was unable to book the flight SW120 to London Stansted (STN). The booking for that flight failed.\n\nWould you like to try booking it again, or would you like to select a different flight?"
+    },
+    {
+      "type": "user",
+      "text": "yea"
+    },
+    {
+      "type": "tool_interaction",
+      "name": "book_flight",
+      "args": {
+        "flight_id": "SW120"
+      },
+      "result": {
+        "booking_id": "BK24380",
+        "status": "confirmed",
+        "message": "Flight SW120 booked successfully."
+      }
+    },
+    {
+      "type": "agent",
+      "text": "Great news! I was able to book the flight SW120 for you.\n\nYour booking is confirmed with Booking ID: **BK24380**."
+    }
+  ],
+  "assertions": [
+    {
+      "name": "CorrectDateInterpretation",
+      "description": "Checks if the agent correctly understood 'tomororw' to mean 2025-05-05 in its chats and search tool calls.",
+      "prompt_template": "Did the agent's 'search_flights' tool calls use the absolute date '2025-05-05' for the 'departure_date' argument? Reply with YES or NO.",
+      "expected_response": "YES",
+      "is_outcome_check": false
+    },
+    {
+      "name": "InfersTomorrow",
+      "description": "Checks if the agent correctly understood 'tomororw' to mean 2025-05-05 in its chats and search tool calls.",
+      "prompt_template": "Did the agent explicitly confirm with the user what date 'tomorrow' is? Reply with YES or NO.",
+      "expected_response": "NO",
+      "is_outcome_check": false
+    },
+    {
+      "name": "SearchedAllLondonAirports",
+      "description": "Checks if the agent performed searches for flights arriving at LHR, LGW, and STN as implicitly requested by the user saying 'all airports in london' and then 'can you check all airports'.",
+      "prompt_template": "Did the agent make 'search_flights' tool calls targeting London Heathrow (LHR), London Gatwick (LGW), AND London Stansted (STN) after the user requested to check all airports?",
+      "expected_response": "YES",
+      "is_outcome_check": false
+    },
+    {
+      "name": "SearchedAllLondonAirportsAutomatically",
+      "description": "Without prompting, checks if the agent performed searches for flights arriving at LHR, LGW, and STN as implicitly requested by the user saying 'all airports in london' and then 'can you check all airports'.",
+      "prompt_template": "Did the agent make 'search_flights' tool calls targeting London Heathrow (LHR), London Gatwick (LGW), AND London Stansted (STN) without being asked? Answer YES or NO.",
+      "expected_response": "YES",
+      "is_outcome_check": false
+    },
+    {
+      "name": "IdentifiedCheapestFlight",
+      "description": "Checks if the agent correctly identified the cheapest flight among all the results it presented (across LHR, LGW, STN).",
+      "prompt_template": "Based on the flight results the agent presented in its final summary (before the user asked 'which one is the cheapest'), did the agent correctly identify and state that SW120 to STN for $353 was the cheapest flight found?",
+      "expected_response": "YES",
+      "is_outcome_check": false
+    },
+    {
+      "name": "HandledBookingAttemptAndFailure",
+      "description": "Checks if the agent attempted to book the identified cheapest flight (SW120), reported the initial booking failure based on the tool result, and then attempted booking again when the user said 'yea'.",
+      "prompt_template": "After the user asked to 'book cheapest', did the agent attempt to book flight SW120, report that the booking failed based on the first tool result, and then attempt to book SW120 again after the user said 'yea'?",
+      "expected_response": "YES",
+      "is_outcome_check": false
+    },
+    {
+      "name": "BookingConfirmedWithID",
+      "description": "Checks if the agent successfully booked the flight on the second attempt and provided the booking ID from the tool result.",
+      "prompt_template": "Did the agent state that the booking for flight SW120 was confirmed and include the booking ID 'BK24380' from the second 'book_flight' tool result?",
+      "expected_response": "YES",
+      "is_outcome_check": true
+    }
+  ]
+}

@@ -29,7 +29,6 @@ class AgentTurnData:
 class AssertionResult:
     """Result of evaluating an assertion."""
     name: str
-    description: str
     passed: bool
     details: str = ""
     is_outcome_check: bool = False  # Flag to identify the main outcome assertion
@@ -46,13 +45,11 @@ class LLMCheckAssertion:
     def __init__(
         self,
         name: str,
-        description: str,
         prompt_template: str, # This template now ONLY contains the specific question/instruction
         expected_response: str = "YES",
         is_outcome_check: bool = False,
     ):
         self.name = name
-        self.description = description
         # The prompt_template from the JSON should *not* include the history preamble anymore.
         # It should only be the specific question/instruction part.
         self.specific_prompt_template = prompt_template
@@ -156,7 +153,6 @@ class LLMCheckAssertion:
         if not llm_client or not eval_model_name:
             return AssertionResult(
                 name=self.name,
-                description=self.description,
                 passed=False,
                 details="LLM client/model not available.",
                 is_outcome_check=self.is_outcome_check,
@@ -187,7 +183,6 @@ class LLMCheckAssertion:
             log.error(f"Assertion '{self.name}': Prompt template expects placeholder '{e}' which was not provided. Template: '{self.specific_prompt_template}'")
             return AssertionResult(
                 name=self.name,
-                description=self.description,
                 passed=False,
                 details=f"Prompt template formatting error: Missing key {e}. Check assertion definition.",
                 is_outcome_check=self.is_outcome_check,
@@ -196,7 +191,6 @@ class LLMCheckAssertion:
              log.exception(f"Assertion '{self.name}': Error formatting specific prompt template: {e}")
              return AssertionResult(
                 name=self.name,
-                description=self.description,
                 passed=False,
                 details=f"Prompt template formatting error: {e}. Template: '{self.specific_prompt_template}'",
                 is_outcome_check=self.is_outcome_check,
@@ -215,13 +209,11 @@ class LLMCheckAssertion:
         details = ""
         if not passed:
             # Make details more informative, include the full prompt for debugging
-            details = (f"LLM check failed. Expected prefix '{self.expected_response}', Got '{llm_answer}'.\n"
-                       f"--- Full Prompt Sent ---\n{full_prompt}\n--- End Prompt ---")
+            details = (f"LLM check failed. Expected prefix '{self.expected_response}', Got '{llm_answer}'.\n")
 
 
         return AssertionResult(
             name=self.name,
-            description=self.description,
             passed=passed,
             details=details,
             is_outcome_check=self.is_outcome_check,
