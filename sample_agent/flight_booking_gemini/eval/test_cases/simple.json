@@ -1,0 +1,161 @@
+{
+  "goal_description": "Find and book a flight from JFK to SFO for tomorrow",
+  "initial_state": {
+    "current_date": "2025-05-04"
+  },
+  "golden_trace": [
+    {
+      "parts": [
+        {
+          "text": "jfk to sfo, tomorrow"
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "text": "OK. I can help you with that. What date would you like to fly from JFK to SFO? Assuming tomorrow is May 5th, 2025."
+        },
+        {
+          "function_call": {
+            "args": {
+              "origin": "JFK",
+              "departure_date": "2025-05-05",
+              "destination": "SFO"
+            },
+            "name": "search_flights"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    {
+      "parts": [
+        {
+          "function_response": {
+            "name": "search_flights",
+            "response": {
+              "result": [
+                {
+                  "flight_id": "UA483",
+                  "airline": "UA",
+                  "departure_time": "09:30",
+                  "arrival_time": "15:45",
+                  "price": 683
+                },
+                {
+                  "flight_id": "AA442",
+                  "airline": "AA",
+                  "departure_time": "13:45",
+                  "arrival_time": "18:15",
+                  "price": 642
+                },
+                {
+                  "flight_id": "DL711",
+                  "airline": "DL",
+                  "departure_time": "14:45",
+                  "arrival_time": "18:15",
+                  "price": 686
+                },
+                {
+                  "flight_id": "DL815",
+                  "airline": "DL",
+                  "departure_time": "11:45",
+                  "arrival_time": "17:45",
+                  "price": 556
+                },
+                {
+                  "flight_id": "AA755",
+                  "airline": "AA",
+                  "departure_time": "10:00",
+                  "arrival_time": "15:15",
+                  "price": 646
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "parts": [
+        {
+          "text": "OK. I found a few flights from JFK to SFO on May 5th, 2025:\n* United Airlines, departing at 09:30, arriving at 15:45, flight id UA483, price 683\n* American Airlines, departing at 13:45, arriving at 18:15, flight id AA442, price 642\n* Delta, departing at 14:45, arriving at 18:15, flight id DL711, price 686\n* Delta, departing at 11:45, arriving at 17:45, flight id DL815, price 556\n* American Airlines, departing at 10:00, arriving at 15:15, flight id AA755, price 646\n\nWhich flight would you like to book?\n"
+        }
+      ],
+      "role": "model"
+    },
+    {
+      "parts": [
+        {
+          "text": "book DL815"
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "function_call": {
+            "args": {
+              "flight_id": "DL815"
+            },
+            "name": "book_flight"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    {
+      "parts": [
+        {
+          "function_response": {
+            "name": "book_flight",
+            "response": {
+              "result": {
+                "booking_id": "BK39292",
+                "status": "confirmed",
+                "message": "Flight DL815 booked successfully."
+              }
+            }
+          }
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "parts": [
+        {
+          "text": "OK. I have booked the flight DL815 for you. Your booking ID is BK39292."
+        }
+      ],
+      "role": "model"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "CorrectDateInterpretationAndSearch",
+      "prompt_template": "Based on the conversation and knowing the initial current date was 2025-05-04, did the agent's first 'search_flights' tool call use origin 'JFK', destination 'SFO', and departure_date '2025-05-05' exactly in its args?",
+      "expected_response": "YES",
+      "is_outcome_check": false
+    },
+    {
+      "name": "PresentedSearchResults",
+      "prompt_template": "Did the agent's response after the first 'search_flights' tool call list the specific flights UA483, AA442, DL711, DL815, and AA755 found in the tool result?",
+      "expected_response": "YES",
+      "is_outcome_check": false
+    },
+    {
+      "name": "AttemptedFirstBookingCorrectly",
+      "prompt_template": "After the user said 'book DL815', did the agent call the 'book_flight' tool with the flight_id 'DL815' in its args?",
+      "expected_response": "YES",
+      "is_outcome_check": false
+    },
+    {
+      "name": "SuccessfulRetryAndConfirmation",
+      "prompt_template": "Did the agent make a 'book_flight' call for DL815 which resulted in a 'confirmed' status and booking_id 'BK39292'",
+      "expected_response": "YES",
+      "is_outcome_check": true
+    }
+  ]
+}

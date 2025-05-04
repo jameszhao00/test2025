@@ -1,37 +1,18 @@
 # eval/schemas.py
 from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Union, Literal, Annotated, Optional # Added Optional
-
-class UserTurnModel(BaseModel):
-    type: Literal["user"] = "user"
-    text: str
-
-class AgentTurnModel(BaseModel):
-    type: Literal["agent"] = "agent"
-    text: str
-
-class ToolInteractionModel(BaseModel):
-    type: Literal["tool_interaction"] = "tool_interaction"
-    name: str
-    args: Dict[str, Any]
-    result: Any
-
-TraceStepModel = Union[UserTurnModel, AgentTurnModel, ToolInteractionModel]
-
+from typing import Any, Optional
+from google.genai import types as genai_types
 class LLMCheckAssertionModel(BaseModel):
     name: str
-    prompt_template: str # This is now the specific question/instruction part
+    prompt_template: str
     expected_response: str = "YES"
     is_outcome_check: bool = False
 
-DiscriminatedTraceStep = Annotated[TraceStepModel, Field(discriminator="type")]
-
 class TestCaseModel(BaseModel):
     goal_description: str
-    # Add initial_state field
-    initial_state: Optional[Dict[str, Any]] = Field(
+    initial_state: Optional[dict[str, Any]] = Field(
         default=None,
         description="Initial key-value state for the agent (e.g., current_date)."
     )
-    golden_trace: List[DiscriminatedTraceStep]
-    assertions: List[LLMCheckAssertionModel]
+    golden_trace: list[genai_types.Content]
+    assertions: list[LLMCheckAssertionModel]

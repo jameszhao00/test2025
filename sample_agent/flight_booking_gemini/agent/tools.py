@@ -3,7 +3,7 @@ import datetime
 import random
 import logging
 from typing import List, Dict, Any
-from google.genai import types
+# Removed google.genai types import as it's no longer needed for declarations here
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -151,57 +151,8 @@ def reset_tool_states():
     log.debug("Tool states reset.")
 
 
-# --- Tool Definitions for Gemini (Manual Function Calling) ---
-
-search_flights_declaration = {
-    "name": "search_flights",
-    "description": "Searches for available flights based on origin, destination, date, and optional price/time preferences.",
-    "parameters": {
-        "type": "object",
-        "properties": {
-            "origin": {
-                "type": "string",
-                "description": "The departure airport code (e.g., 'SFO').",
-            },
-            "destination": {
-                "type": "string",
-                "description": "The arrival airport code (e.g., 'JFK', 'CDG').",
-            },
-            "departure_date": {
-                "type": "string",
-                "description": "The desired departure date in YYYY-MM-DD format.",
-            },
-        },
-        "required": ["origin", "destination", "departure_date"],
-    },
-}
-
-book_flight_declaration = {
-    "name": "book_flight",
-    "description": "Books a specific flight using its unique flight ID obtained from a search.",
-    "parameters": {
-        "type": "object",
-        "properties": {
-            "flight_id": {
-                "type": "string",
-                "description": "The unique identifier of the flight to book (e.g., 'UA123', 'AA456').",
-            },
-        },
-        "required": ["flight_id"],
-    },
-}
-
-# --- Dictionary mapping tool names to actual functions ---
 TOOL_FUNCTION_MAP = {
     "search_flights": search_flights,
     "book_flight": book_flight,
 }
-
-# --- List of Tool Declarations for the SDK ---
-# Used when automatic_function_calling is disabled
-
-AGENT_TOOL_DECLARATIONS = [
-    types.Tool(
-        function_declarations=[search_flights_declaration, book_flight_declaration]
-    )
-]
+AGENT_TOOLS = [search_flights, book_flight]

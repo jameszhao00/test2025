@@ -2,13 +2,22 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Interact",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/sample_agent/flight_booking_gemini/run.py",
+            "cwd": "${workspaceFolder}/sample_agent/flight_booking_gemini",
+            "console": "integratedTerminal",
+            "args": "interactive"
+        },
+        {
             "name": "Eval simple booking",
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "cwd": "${fileDirname}",
             "console": "integratedTerminal",
-            "args": "eval --test_case simple_booking --simulate_user"
+            "args": "eval --test_case simple_booking"
         },
         {
             "name": "Eval interactive_trace_20250504_004707",
@@ -17,7 +26,7 @@
             "program": "${file}",
             "cwd": "${fileDirname}",
             "console": "integratedTerminal",
-            "args": "eval --test_case interactive_trace_20250504_004707 --simulate_user"
+            "args": "eval --test_case interactive_trace_20250504_004707"
         }
     ]
 }

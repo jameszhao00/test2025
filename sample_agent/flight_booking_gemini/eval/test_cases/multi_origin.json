@@ -1,0 +1,263 @@
+{
+  "goal_description": "Find and book the cheapest flight from NYC (multiple airports) to Dubai (DXB) departing tomorrow (May 5th, 2025).",
+  "initial_state": {
+    "current_date": "2025-05-04"
+  },
+  "golden_trace": [
+    {
+      "parts": [
+        {
+          "text": "nyc to dubai"
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "text": "I can help you search for flights from NYC to Dubai. What date would you like to depart?\n\nAlso, there are multiple airports in both NYC and Dubai. Would you like me to search for flights from all NYC airports to all Dubai airports, or do you have specific airports in mind?"
+        }
+      ],
+      "role": "model"
+    },
+    {
+      "parts": [
+        {
+          "text": "tomorrow"
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "text": "Okay, I can search for flights departing tomorrow, May 5th, 2025.\n\nSince you didn't specify airports, I will search for flights from the major NYC airports (JFK, LGA, and EWR) to the main airport in Dubai (DXB).\n\n"
+        },
+        {
+          "function_call": {
+            "args": {
+              "departure_date": "2025-05-05",
+              "destination": "DXB",
+              "origin": "JFK"
+            },
+            "name": "search_flights"
+          }
+        },
+        {
+          "function_call": {
+            "args": {
+              "destination": "DXB",
+              "origin": "LGA",
+              "departure_date": "2025-05-05"
+            },
+            "name": "search_flights"
+          }
+        },
+        {
+          "function_call": {
+            "args": {
+              "destination": "DXB",
+              "departure_date": "2025-05-05",
+              "origin": "EWR"
+            },
+            "name": "search_flights"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    {
+      "parts": [
+        {
+          "function_response": {
+            "name": "search_flights",
+            "response": {
+              "result": [
+                {
+                  "flight_id": "UA102",
+                  "airline": "UA",
+                  "departure_time": "10:15",
+                  "arrival_time": "14:45",
+                  "price": 482
+                },
+                {
+                  "flight_id": "SW500",
+                  "airline": "SW",
+                  "departure_time": "18:45",
+                  "arrival_time": "22:00",
+                  "price": 461
+                },
+                {
+                  "flight_id": "SW371",
+                  "airline": "SW",
+                  "departure_time": "10:00",
+                  "arrival_time": "13:30",
+                  "price": 445
+                }
+              ]
+            }
+          }
+        },
+        {
+          "function_response": {
+            "name": "search_flights",
+            "response": {
+              "result": [
+                {
+                  "flight_id": "DL337",
+                  "airline": "DL",
+                  "departure_time": "19:00",
+                  "arrival_time": "01:00",
+                  "price": 335
+                },
+                {
+                  "flight_id": "UA571",
+                  "airline": "UA",
+                  "departure_time": "18:45",
+                  "arrival_time": "21:15",
+                  "price": 397
+                },
+                {
+                  "flight_id": "UA480",
+                  "airline": "UA",
+                  "departure_time": "15:45",
+                  "arrival_time": "20:45",
+                  "price": 369
+                }
+              ]
+            }
+          }
+        },
+        {
+          "function_response": {
+            "name": "search_flights",
+            "response": {
+              "result": [
+                {
+                  "flight_id": "SW729",
+                  "airline": "SW",
+                  "departure_time": "10:00",
+                  "arrival_time": "13:30",
+                  "price": 427
+                },
+                {
+                  "flight_id": "DL677",
+                  "airline": "DL",
+                  "departure_time": "13:30",
+                  "arrival_time": "16:15",
+                  "price": 288
+                },
+                {
+                  "flight_id": "DL675",
+                  "airline": "DL",
+                  "departure_time": "18:30",
+                  "arrival_time": "00:15",
+                  "price": 296
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "parts": [
+        {
+          "text": "Here are the flights I found departing tomorrow, May 5th, 2025, from NYC to Dubai (DXB):\n\nFrom JFK to DXB:\n*   Airline: UA, Departs: 10:15, Arrives: 14:45, Price: $482 (Flight ID: UA102)\n*   Airline: SW, Departs: 18:45, Arrives: 22:00, Price: $461 (Flight ID: SW500)\n*   Airline: SW, Departs: 10:00, Arrives: 13:30, Price: $445 (Flight ID: SW371)\n\nFrom LGA to DXB:\n*   Airline: DL, Departs: 19:00, Arrives: 01:00, Price: $335 (Flight ID: DL337)\n*   Airline: UA, Departs: 18:45, Arrives: 21:15, Price: $397 (Flight ID: UA571)\n*   Airline: UA, Departs: 15:45, Arrives: 20:45, Price: $369 (Flight ID: UA480)\n\nFrom EWR to DXB:\n*   Airline: SW, Departs: 10:00, Arrives: 13:30, Price: $427 (Flight ID: SW729)\n*   Airline: DL, Departs: 13:30, Arrives: 16:15, Price: $288 (Flight ID: DL677)\n*   Airline: DL, Departs: 18:30, Arrives: 00:15, Price: $296 (Flight ID: DL675)\n\nLet me know if you'd like to book any of these flights!"
+        }
+      ],
+      "role": "model"
+    },
+    {
+      "parts": [
+        {
+          "text": "cheapest"
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "text": "The cheapest flight I found is from EWR (Newark) to DXB (Dubai) for $288.\n\nHere are the details:\n*   Airline: DL\n*   Departs: 13:30\n*   Arrives: 16:15\n*   Price: $288\n*   Flight ID: DL677\n\nWould you like me to book this flight for you?"
+        }
+      ],
+      "role": "model"
+    },
+    {
+      "parts": [
+        {
+          "text": "book"
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "function_call": {
+            "args": {
+              "flight_id": "DL677"
+            },
+            "name": "book_flight"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    {
+      "parts": [
+        {
+          "function_response": {
+            "name": "book_flight",
+            "response": {
+              "result": {
+                "booking_id": "BK96169",
+                "status": "confirmed",
+                "message": "Flight DL677 booked successfully."
+              }
+            }
+          }
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "parts": [
+        {
+          "text": "Your flight DL677 has been successfully booked. Your booking ID is BK96169."
+        }
+      ],
+      "role": "model"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "CorrectDateInterpretation",
+      "prompt_template": "Based on the conversation and knowing the initial current date was 2025-05-04, did the agent correctly use the absolute date 2025-05-05 in its 'search_flights' tool calls args when the user asked for 'tomorrow'?",
+      "expected_response": "YES",
+      "is_outcome_check": false
+    },
+    {
+      "name": "MultipleOriginSearch",
+      "prompt_template": "Did the agent make 'search_flights' tool calls for flights departing from JFK, LGA, AND EWR with destination DXB and date 2025-05-05 as discussed?",
+      "expected_response": "YES",
+      "is_outcome_check": false
+    },
+    {
+      "name": "IdentifiedCheapestFlight",
+      "prompt_template": "After receiving all the search results from the tool calls, did the agent identify and state that the cheapest flight found was DL677 from EWR at $288?",
+      "expected_response": "YES",
+      "is_outcome_check": false
+    },
+    {
+      "name": "AttemptedBookingOfCheapest",
+      "prompt_template": "When the user said 'book', did the agent attempt to book the specific flight 'DL677' by calling the 'book_flight' tool with this exact flight ID?",
+      "expected_response": "YES",
+      "is_outcome_check": false
+    },
+    {
+      "name": "BookingConfirmedWithID",
+      "prompt_template": "Did the agent's final response confirm the booking for flight DL677 was successful and include the booking ID 'BK96169' provided in the tool response?",
+      "expected_response": "YES",
+      "is_outcome_check": true
+    }
+  ]
+}

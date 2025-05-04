@@ -1,0 +1,596 @@
+{
+  "goal_description": "Find flights from NYC to Dubai for the next four days and then book the cheapest flight.",
+  "initial_state": {
+    "current_date": "2025-05-04"
+  },
+  "golden_trace": [
+    {
+      "parts": [
+        {
+          "text": "all flights from NYC to Dubai over next 4 days"
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "text": "Okay, I can search for flights from the New York City area airports (JFK, LGA, EWR) to Dubai (DXB) for the next 4 days, starting from today, May 4th, 2025.\n\nHere are the searches I will perform:\n*   Flights from JFK to DXB on 2025-05-04, 2025-05-05, 2025-05-06, 2025-05-07\n*   Flights from LGA to DXB on 2025-05-04, 2025-05-05, 2025-05-06, 2025-05-07\n*   Flights from EWR to DXB on 2025-05-04, 2025-05-05, 2025-05-06, 2025-05-07\n\nPlease wait while I get the flight information.\n"
+        },
+        {
+          "function_call": {
+            "args": {
+              "departure_date": "2025-05-04",
+              "origin": "JFK",
+              "destination": "DXB"
+            },
+            "name": "search_flights"
+          }
+        },
+        {
+          "function_call": {
+            "args": {
+              "destination": "DXB",
+              "departure_date": "2025-05-05",
+              "origin": "JFK"
+            },
+            "name": "search_flights"
+          }
+        },
+        {
+          "function_call": {
+            "args": {
+              "destination": "DXB",
+              "origin": "JFK",
+              "departure_date": "2025-05-06"
+            },
+            "name": "search_flights"
+          }
+        },
+        {
+          "function_call": {
+            "args": {
+              "destination": "DXB",
+              "departure_date": "2025-05-07",
+              "origin": "JFK"
+            },
+            "name": "search_flights"
+          }
+        },
+        {
+          "function_call": {
+            "args": {
+              "destination": "DXB",
+              "origin": "LGA",
+              "departure_date": "2025-05-04"
+            },
+            "name": "search_flights"
+          }
+        },
+        {
+          "function_call": {
+            "args": {
+              "origin": "LGA",
+              "destination": "DXB",
+              "departure_date": "2025-05-05"
+            },
+            "name": "search_flights"
+          }
+        },
+        {
+          "function_call": {
+            "args": {
+              "destination": "DXB",
+              "departure_date": "2025-05-06",
+              "origin": "LGA"
+            },
+            "name": "search_flights"
+          }
+        },
+        {
+          "function_call": {
+            "args": {
+              "departure_date": "2025-05-07",
+              "origin": "LGA",
+              "destination": "DXB"
+            },
+            "name": "search_flights"
+          }
+        },
+        {
+          "function_call": {
+            "args": {
+              "destination": "DXB",
+              "origin": "EWR",
+              "departure_date": "2025-05-04"
+            },
+            "name": "search_flights"
+          }
+        },
+        {
+          "function_call": {
+            "args": {
+              "departure_date": "2025-05-05",
+              "origin": "EWR",
+              "destination": "DXB"
+            },
+            "name": "search_flights"
+          }
+        },
+        {
+          "function_call": {
+            "args": {
+              "destination": "DXB",
+              "departure_date": "2025-05-06",
+              "origin": "EWR"
+            },
+            "name": "search_flights"
+          }
+        },
+        {
+          "function_call": {
+            "args": {
+              "departure_date": "2025-05-07",
+              "destination": "DXB",
+              "origin": "EWR"
+            },
+            "name": "search_flights"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    {
+      "parts": [
+        {
+          "function_response": {
+            "name": "search_flights",
+            "response": {
+              "result": [
+                {
+                  "flight_id": "UA846",
+                  "airline": "UA",
+                  "departure_time": "19:30",
+                  "arrival_time": "01:45",
+                  "price": 378
+                },
+                {
+                  "flight_id": "SW201",
+                  "airline": "SW",
+                  "departure_time": "14:00",
+                  "arrival_time": "19:30",
+                  "price": 364
+                },
+                {
+                  "flight_id": "DL911",
+                  "airline": "DL",
+                  "departure_time": "08:15",
+                  "arrival_time": "13:30",
+                  "price": 403
+                },
+                {
+                  "flight_id": "SW478",
+                  "airline": "SW",
+                  "departure_time": "11:45",
+                  "arrival_time": "16:15",
+                  "price": 429
+                }
+              ]
+            }
+          }
+        },
+        {
+          "function_response": {
+            "name": "search_flights",
+            "response": {
+              "result": [
+                {
+                  "flight_id": "DL827",
+                  "airline": "DL",
+                  "departure_time": "15:30",
+                  "arrival_time": "18:30",
+                  "price": 767
+                },
+                {
+                  "flight_id": "SW111",
+                  "airline": "SW",
+                  "departure_time": "11:30",
+                  "arrival_time": "15:45",
+                  "price": 729
+                },
+                {
+                  "flight_id": "AA867",
+                  "airline": "AA",
+                  "departure_time": "13:30",
+                  "arrival_time": "18:15",
+                  "price": 847
+                },
+                {
+                  "flight_id": "DL450",
+                  "airline": "DL",
+                  "departure_time": "16:30",
+                  "arrival_time": "21:00",
+                  "price": 758
+                }
+              ]
+            }
+          }
+        },
+        {
+          "function_response": {
+            "name": "search_flights",
+            "response": {
+              "result": [
+                {
+                  "flight_id": "UA114",
+                  "airline": "UA",
+                  "departure_time": "20:30",
+                  "arrival_time": "01:45",
+                  "price": 286
+                },
+                {
+                  "flight_id": "SW148",
+                  "airline": "SW",
+                  "departure_time": "16:00",
+                  "arrival_time": "19:00",
+                  "price": 302
+                },
+                {
+                  "flight_id": "AA221",
+                  "airline": "AA",
+                  "departure_time": "10:15",
+                  "arrival_time": "16:15",
+                  "price": 346
+                },
+                {
+                  "flight_id": "UA791",
+                  "airline": "UA",
+                  "departure_time": "13:45",
+                  "arrival_time": "17:15",
+                  "price": 281
+                },
+                {
+                  "flight_id": "AA450",
+                  "airline": "AA",
+                  "departure_time": "13:00",
+                  "arrival_time": "17:30",
+                  "price": 247
+                }
+              ]
+            }
+          }
+        },
+        {
+          "function_response": {
+            "name": "search_flights",
+            "response": {
+              "result": [
+                {
+                  "flight_id": "DL321",
+                  "airline": "DL",
+                  "departure_time": "09:15",
+                  "arrival_time": "14:45",
+                  "price": 609
+                }
+              ]
+            }
+          }
+        },
+        {
+          "function_response": {
+            "name": "search_flights",
+            "response": {
+              "result": [
+                {
+                  "flight_id": "SW189",
+                  "airline": "SW",
+                  "departure_time": "11:00",
+                  "arrival_time": "15:15",
+                  "price": 479
+                },
+                {
+                  "flight_id": "AA795",
+                  "airline": "AA",
+                  "departure_time": "08:15",
+                  "arrival_time": "11:30",
+                  "price": 464
+                }
+              ]
+            }
+          }
+        },
+        {
+          "function_response": {
+            "name": "search_flights",
+            "response": {
+              "result": [
+                {
+                  "flight_id": "AA229",
+                  "airline": "AA",
+                  "departure_time": "12:00",
+                  "arrival_time": "18:30",
+                  "price": 488
+                },
+                {
+                  "flight_id": "AA709",
+                  "airline": "AA",
+                  "departure_time": "12:30",
+                  "arrival_time": "17:00",
+                  "price": 526
+                }
+              ]
+            }
+          }
+        },
+        {
+          "function_response": {
+            "name": "search_flights",
+            "response": {
+              "result": [
+                {
+                  "flight_id": "SW149",
+                  "airline": "SW",
+                  "departure_time": "11:00",
+                  "arrival_time": "16:45",
+                  "price": 774
+                },
+                {
+                  "flight_id": "SW459",
+                  "airline": "SW",
+                  "departure_time": "16:30",
+                  "arrival_time": "19:30",
+                  "price": 729
+                },
+                {
+                  "flight_id": "AA616",
+                  "airline": "AA",
+                  "departure_time": "21:15",
+                  "arrival_time": "02:45",
+                  "price": 732
+                },
+                {
+                  "flight_id": "AA746",
+                  "airline": "AA",
+                  "departure_time": "13:30",
+                  "arrival_time": "19:45",
+                  "price": 726
+                }
+              ]
+            }
+          }
+        },
+        {
+          "function_response": {
+            "name": "search_flights",
+            "response": {
+              "result": [
+                {
+                  "flight_id": "DL434",
+                  "airline": "DL",
+                  "departure_time": "12:45",
+                  "arrival_time": "17:15",
+                  "price": 515
+                },
+                {
+                  "flight_id": "UA919",
+                  "airline": "UA",
+                  "departure_time": "18:00",
+                  "arrival_time": "00:45",
+                  "price": 498
+                },
+                {
+                  "flight_id": "DL740",
+                  "airline": "DL",
+                  "departure_time": "09:45",
+                  "arrival_time": "14:45",
+                  "price": 449
+                },
+                {
+                  "flight_id": "SW110",
+                  "airline": "SW",
+                  "departure_time": "12:30",
+                  "arrival_time": "16:15",
+                  "price": 477
+                }
+              ]
+            }
+          }
+        },
+        {
+          "function_response": {
+            "name": "search_flights",
+            "response": {
+              "result": [
+                {
+                  "flight_id": "UA171",
+                  "airline": "UA",
+                  "departure_time": "09:00",
+                  "arrival_time": "13:30",
+                  "price": 551
+                },
+                {
+                  "flight_id": "DL470",
+                  "airline": "DL",
+                  "departure_time": "20:30",
+                  "arrival_time": "00:15",
+                  "price": 553
+                },
+                {
+                  "flight_id": "AA891",
+                  "airline": "AA",
+                  "departure_time": "21:15",
+                  "arrival_time": "00:00",
+                  "price": 669
+                }
+              ]
+            }
+          }
+        },
+        {
+          "function_response": {
+            "name": "search_flights",
+            "response": {
+              "result": [
+                {
+                  "flight_id": "SW811",
+                  "airline": "SW",
+                  "departure_time": "12:30",
+                  "arrival_time": "18:30",
+                  "price": 765
+                }
+              ]
+            }
+          }
+        },
+        {
+          "function_response": {
+            "name": "search_flights",
+            "response": {
+              "result": [
+                {
+                  "flight_id": "SW661",
+                  "airline": "SW",
+                  "departure_time": "16:00",
+                  "arrival_time": "22:15",
+                  "price": 771
+                },
+                {
+                  "flight_id": "DL237",
+                  "airline": "DL",
+                  "departure_time": "08:30",
+                  "arrival_time": "12:00",
+                  "price": 806
+                },
+                {
+                  "flight_id": "UA257",
+                  "airline": "UA",
+                  "departure_time": "20:45",
+                  "arrival_time": "00:30",
+                  "price": 838
+                }
+              ]
+            }
+          }
+        },
+        {
+          "function_response": {
+            "name": "search_flights",
+            "response": {
+              "result": [
+                {
+                  "flight_id": "UA228",
+                  "airline": "UA",
+                  "departure_time": "12:15",
+                  "arrival_time": "18:30",
+                  "price": 698
+                },
+                {
+                  "flight_id": "UA518",
+                  "airline": "UA",
+                  "departure_time": "21:45",
+                  "arrival_time": "02:15",
+                  "price": 695
+                },
+                {
+                  "flight_id": "UA812",
+                  "airline": "UA",
+                  "departure_time": "20:15",
+                  "arrival_time": "23:30",
+                  "price": 739
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "parts": [
+        {
+          "text": "Here are the flights I found from New York City area airports (JFK, LGA, EWR) to Dubai (DXB) for the next 4 days:\n\n**May 4th, 2025:**\n*   **From JFK to DXB:**\n    *   UA846: Departs 19:30, Arrives 01:45, Price: $378\n    *   SW201: Departs 14:00, Arrives 19:30, Price: $364\n    *   DL911: Departs 08:15, Arrives 13:30, Price: $403\n    *   SW478: Departs 11:45, Arrives 16:15, Price: $429\n*   **From LGA to DXB:**\n    *   SW189: Departs 11:00, Arrives 15:15, Price: $479\n    *   AA795: Departs 08:15, Arrives 11:30, Price: $464\n*   **From EWR to DXB:**\n    *   UA171: Departs 09:00, Arrives 13:30, Price: $551\n    *   DL470: Departs 20:30, Arrives 00:15, Price: $553\n    *   AA891: Departs 21:15, Arrives 00:00, Price: $669\n\n**May 5th, 2025:**\n*   **From JFK to DXB:**\n    *   DL827: Departs 15:30, Arrives 18:30, Price: $767\n    *   SW111: Departs 11:30, Arrives 15:45, Price: $729\n    *   AA867: Departs 13:30, Arrives 18:15, Price: $847\n    *   DL450: Departs 16:30, Arrives 21:00, Price: $758\n*   **From LGA to DXB:**\n    *   AA229: Departs 12:00, Arrives 18:30, Price: $488\n    *   AA709: Departs 12:30, Arrives 17:00, Price: $526\n*   **From EWR to DXB:**\n    *   SW811: Departs 12:30, Arrives 18:30, Price: $765\n\n**May 6th, 2025:**\n*   **From JFK to DXB:**\n    *   UA114: Departs 20:30, Arrives 01:45, Price: $286\n    *   SW148: Departs 16:00, Arrives 19:00, Price: $302\n    *   AA221: Departs 10:15, Arrives 16:15, Price: $346\n    *   UA791: Departs 13:45, Arrives 17:15, Price: $281\n    *   AA450: Departs 13:00, Arrives 17:30, Price: $247\n*   **From LGA to DXB:**\n    *   SW149: Departs 11:00, Arrives 16:45, Price: $774\n    *   SW459: Departs 16:30, Arrives 19:30, Price: $729\n    *   AA616: Departs 21:15, Arrives 02:45, Price: $732\n    *   AA746: Departs 13:30, Arrives 19:45, Price: $726\n*   **From EWR to DXB:**\n    *   SW661: Departs 16:00, Arrives 22:15, Price: $771\n    *   DL237: Departs 08:30, Arrives 12:00, Price: $806\n    *   UA257: Departs 20:45, Arrives 00:30, Price: $838\n\n**May 7th, 2025:**\n*   **From JFK to DXB:**\n    *   DL321: Departs 09:15, Arrives 14:45, Price: $609\n*   **From LGA to DXB:**\n    *   DL434: Departs 12:45, Arrives 17:15, Price: $515\n    *   UA919: Departs 18:00, Arrives 00:45, Price: $498\n    *   DL740: Departs 09:45, Arrives 14:45, Price: $449\n    *   SW110: Departs 12:30, Arrives 16:15, Price: $477\n*   **From EWR to DXB:**\n    *   UA228: Departs 12:15, Arrives 18:30, Price: $698\n    *   UA518: Departs 21:45, Arrives 02:15, Price: $695\n    *   UA812: Departs 20:15, Arrives 23:30, Price: $739\n\nLet me know if you would like to book any of these flights!"
+        }
+      ],
+      "role": "model"
+    },
+    {
+      "parts": [
+        {
+          "text": "book cheapest"
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "text": "Okay, I can book the cheapest flight found. Looking at all the results, the cheapest flight is **AA450** from JFK to DXB on **May 6th, 2025** for **$247**.\n\nI will now proceed to book this flight for you.\n"
+        },
+        {
+          "function_call": {
+            "args": {
+              "flight_id": "AA450"
+            },
+            "name": "book_flight"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    {
+      "parts": [
+        {
+          "function_response": {
+            "name": "book_flight",
+            "response": {
+              "result": {
+                "booking_id": "BK77253",
+                "status": "confirmed",
+                "message": "Flight AA450 booked successfully."
+              }
+            }
+          }
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "parts": [
+        {
+          "text": "Great! Your flight AA450 from JFK to Dubai on May 6th, 2025 has been successfully booked. Your booking ID is **BK77253**."
+        }
+      ],
+      "role": "model"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "CorrectDateRangeInterpretation",
+      "prompt_template": "Did the agent search for flights across 2025-05-04, 2025-05-05, 2025-05-06, and 2025-05-07 in response to the user's request for 'over next 4 days'?",
+      "expected_response": "YES",
+      "is_outcome_check": false
+    },
+    {
+      "name": "SearchedMultipleNYCAirports",
+      "prompt_template": "Did the agent call 'search_flights' for flights from all three NYC area airports (JFK, LGA, EWR)?",
+      "expected_response": "YES",
+      "is_outcome_check": false
+    },
+    {
+      "name": "IdentifiedCheapestFlightCorrectly",
+      "prompt_template": "After presenting the flight search results, did the agent correctly identify flight AA450 from JFK to DXB on May 6th, 2025, with a price of $247 as the cheapest flight?",
+      "expected_response": "YES",
+      "is_outcome_check": false
+    },
+    {
+      "name": "AttemptedToBookCheapestFlight",
+      "prompt_template": "Did the agent call the 'book_flight' tool with the flight_id 'AA450'?",
+      "expected_response": "YES",
+      "is_outcome_check": false
+    },
+    {
+      "name": "BookingConfirmedWithID",
+      "prompt_template": "Did the agent's final response confirm the booking for flight AA450 and provide the specific booking ID 'BK77253' obtained from the 'book_flight' tool response?",
+      "expected_response": "YES",
+      "is_outcome_check": true
+    }
+  ]
+}

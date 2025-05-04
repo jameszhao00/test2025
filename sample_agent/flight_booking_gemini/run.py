@@ -9,15 +9,11 @@ from dotenv import load_dotenv
 from termcolor import colored
 from pydantic import ValidationError
 import datetime
-import traceback  # For detailed error logging
 
 from agent.agent import FlightBookingAgent
 from eval.evaluator import GeminiEvaluator, EvalToolMismatchError
 from eval.schemas import (
     TestCaseModel,
-    UserTurnModel,
-    AgentTurnModel,
-    ToolInteractionModel,
     LLMCheckAssertionModel,  # Import assertion model
 )
 from eval.assertion_types import LLMCheckAssertion
@@ -40,101 +36,8 @@ log = logging.getLogger(__name__)
 # --- Trace Conversion and Generation Logic ---
 
 
-def convert_history_to_trace(
-    history: list[tuple[str, genai_types.Part]],
-) -> List[Dict[str, Any]]:
-    """Converts raw agent history to golden trace format (list of dicts)."""
-    trace_steps = []
-    i = 0
-    while i < len(history):
-        role, part = history[i]
-        if role == "user":
-            if part.text:
-                trace_steps.append(UserTurnModel(text=part.text).dict())
-            elif part.function_response:
-                # This is part of a tool interaction, handled below
-                pass
-            else:
-                log.warning(f"Skipping unknown user part structure: {part}")
-        elif role == "model":
-            if part.text:
-                trace_steps.append(AgentTurnModel(text=part.text).dict())
-            elif part.function_call:
-                if i + 1 < len(history):
-                    next_turn_role, next_turn_part = history[i + 1]
-                    if (
-                        next_turn_role == "user"
-                        and next_turn_part
-                        and next_turn_part.function_response
-                    ):
-                        func_call = part.function_call
-                        func_resp = next_turn_part.function_response
-                        result_data = func_resp.response.get(
-                            "result"
-                        )  # Extract result safely
-
-                        trace_steps.append(
-                            ToolInteractionModel(
-                                name=func_call.name,
-                                args=dict(func_call.args),
-                                result=result_data,
-                            ).dict()
-                        )
-                        i += 1  # Skip the function_response turn
-                    else:
-                        log.warning(
-                            f"Function call by model not followed by function response. Skipping call: {part}"
-                        )
-                else:
-                    log.warning(
-                        f"Function call by model was the last turn. Skipping call: {part}"
-                    )
-            else:
-                log.warning(f"Skipping unknown model part structure: {part}")
-        else:
-            log.warning(f"Skipping unknown role in history: {role}")
-
-        i += 1
-    return trace_steps
-
-
-def format_trace_for_prompt(trace: List[Dict[str, Any]]) -> str:
-    """Formats the converted trace (list of dicts) into a readable string for LLM prompts."""
-    formatted_lines = []
-    for step in trace:
-        step_type = step.get("type")
-        if step_type == "user":
-            formatted_lines.append(f"User: {step.get('text', '')}")
-        elif step_type == "agent":
-            formatted_lines.append(f"Agent: {step.get('text', '')}")
-        elif step_type == "tool_interaction":
-            tool_name = step.get("name", "unknown_tool")
-            tool_args = step.get("args", {})
-            tool_result = step.get("result", "[No Result Provided]")
-            # Basic result formatting
-            result_str = json.dumps(tool_result)
-            if len(result_str) > 150:  # Truncate long results
-                result_str = (
-                    result_str[:150] + "...}"
-                    if isinstance(tool_result, dict)
-                    else (
-                        result_str[:150] + "...]"
-                        if isinstance(tool_result, list)
-                        else result_str[:150] + "..."
-                    )
-                )
-
-            formatted_lines.append(
-                f"Tool Call: {tool_name}(args={json.dumps(tool_args)})"
-            )
-            formatted_lines.append(f"Tool Result: {result_str}")
-        else:
-            formatted_lines.append(f"Unknown Step: {step}")
-    return "\n".join(formatted_lines)
-
-
 def generate_goal_and_assertions(
-    formatted_trace_str: str,
+    formatted_trace_str: list[genai_types.Content],  # Updated type hint
     initial_state: Dict[str, Any],
     generation_model_name: str = "gemini-2.5-flash-preview-04-17",  # Use a powerful model for this
 ) -> Tuple[Optional[str], List[Dict[str, Any]]]:
@@ -161,7 +64,7 @@ Conversation History:
 --- HISTORY END ---
 
 Instructions:
-1.  **Goal Description:** Write a short (1-2 sentence) description summarizing the user's primary goal observed in this conversation. Be specific about origin, destination, dates, and any key constraints mentioned (e.g., cheapest, specific airline). If the conversation didn't reach a clear goal, describe the interaction briefly (e.g., "User inquired about flights from X to Y").
+1.  **Goal Description:** A first person account (i.e. speaking from the user's perspective) of what they wanted to accomplish, baed on this conversation. Be specific about origin, destination, dates, and any key constraints mentioned (e.g., cheapest, specific airline).
 2.  **Assertions:** Generate a list of 3-5 key assertions to verify the agent's performance *within this specific trace*. Each assertion must be a dictionary with the following keys:
     *   `name`: A short, descriptive CamelCase name (e.g., "CorrectDateInterpretation", "OfferedFlightOptions", "BookedCorrectFlight").
     *   `description`: A brief explanation of what the assertion checks *in the context of this trace*.
@@ -351,7 +254,7 @@ Now, analyze the actual conversation history provided at the beginning and gener
 
 def save_interactive_trace(
     initial_state: Dict[str, Any],
-    history: list[tuple[str, genai_types.Part]],
+    history: list[genai_types.Content],  # Updated type hint
 ):
     """Saves the interactive session trace, attempting to auto-generate goal/assertions."""
     log.info("Saving interactive trace...")
@@ -363,26 +266,12 @@ def save_interactive_trace(
     filepath = trace_dir / filename
 
     try:
-        converted_trace = convert_history_to_trace(history)
-        if not converted_trace:
-            log.warning("Converted trace is empty, not saving.")
-            return
-
-        # --- Generate Goal and Assertions ---
-        formatted_trace_str = format_trace_for_prompt(converted_trace)
         generated_goal, generated_assertions = generate_goal_and_assertions(
-            formatted_trace_str, initial_state
+            history, initial_state
         )
-        # ---
-
         # Use generated goal if available, otherwise fallback
-        final_goal = generated_goal or goal or f"Interactive Session ({timestamp})"
-        if generated_goal:
-            log.info("Using automatically generated goal description.")
-        else:
-            log.warning("Using fallback goal description.")
+        final_goal = generated_goal or "[Error: Failed to generate goal]"
 
-        # Use generated assertions if available
         final_assertions = generated_assertions
         if generated_assertions:
             log.info(
@@ -410,8 +299,7 @@ def save_interactive_trace(
         test_case_data = TestCaseModel(
             goal_description=final_goal,
             initial_state=initial_state,
-            golden_trace=converted_trace,
-            # Save the validated assertion dicts
+            golden_trace=history,
             assertions=[
                 LLMCheckAssertionModel(**a) for a in validated_assertion_models
             ],
@@ -464,7 +352,8 @@ def run_interactive_agent():
             if not user_input:
                 continue
 
-            agent.interact(user_input)
+            response = agent.interact(user_input)
+            print(colored(f"Agent: {response}", "blue"))
 
     except Exception as e:
         logging.exception("An error occurred during interactive session.")
@@ -534,10 +423,10 @@ def load_test_case(test_case_name: str) -> Optional[TestCaseModel]:
 
 
 # --- Run Evaluation (Small modification to handle assertion loading) ---
-def run_evaluation(test_case_name: str, simulate_user: bool):
+def run_evaluation(test_case_name: str):
     """Runs the evaluation for a specific test case loaded from JSON."""
     log.info(
-        f"Starting evaluation for test case: {test_case_name} (Simulate User: {simulate_user})"
+        f"Starting evaluation for test case: {test_case_name}"
     )
 
     test_case_data = load_test_case(test_case_name)
@@ -546,8 +435,6 @@ def run_evaluation(test_case_name: str, simulate_user: bool):
 
     goal_desc = test_case_data.goal_description
     initial_agent_state = test_case_data.initial_state or {}
-
-    golden_trace_steps = [step.dict() for step in test_case_data.golden_trace]
 
     assertions: List[LLMCheckAssertion] = []
     # Directly use the assertion models loaded from the TestCaseModel
@@ -591,10 +478,9 @@ def run_evaluation(test_case_name: str, simulate_user: bool):
 
         results = evaluator.evaluate_trace(
             agent=agent,
-            golden_trace=golden_trace_steps,
+            golden_trace=test_case_data.golden_trace,
             assertions=assertions,
             goal_description=goal_desc,
-            simulate_user=simulate_user,
             agent_tool_map=agent.tool_function_map,
         )
         evaluator.display_results(results)
@@ -628,11 +514,6 @@ if __name__ == "__main__":
         default=None,
         help="Name of the test case JSON file (without .json extension) to run in 'eval' mode (e.g., simple_booking, unvalidated/interactive_trace_...).",
     )
-    parser.add_argument(
-        "--simulate_user",
-        action="store_true",
-        help="If set, use an LLM to simulate user responses during evaluation instead of golden trace.",
-    )
     args = parser.parse_args()
 
     if args.mode == "interactive":
@@ -654,4 +535,4 @@ if __name__ == "__main__":
             if available_cases:
                 print(f"Available cases: {', '.join(available_cases)}")
             exit(1)
-        run_evaluation(args.test_case, args.simulate_user)
+        run_evaluation(args.test_case)

@@ -1,0 +1,222 @@
+{
+  "goal_description": "I wanted to find flights from JFK to Dubai for the next 3 days, identify the cheapest one among all those options, and then book that cheapest flight.",
+  "initial_state": {
+    "current_date": "2025-05-04"
+  },
+  "golden_trace": [
+    {
+      "parts": [
+        {
+          "text": "jfk to dubai flights, book cheapest over next 3 days"
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "text": "Okay, I can help you with that. I will search for flights from JFK to Dubai (assuming DXB is the airport) for the next 3 days (May 4th, May 5th, and May 6th, 2025) and then attempt to book the cheapest one I find.\n\n"
+        },
+        {
+          "function_call": {
+            "args": {
+              "departure_date": "2025-05-04",
+              "origin": "JFK",
+              "destination": "DXB"
+            },
+            "name": "search_flights"
+          }
+        },
+        {
+          "function_call": {
+            "args": {
+              "origin": "JFK",
+              "destination": "DXB",
+              "departure_date": "2025-05-05"
+            },
+            "name": "search_flights"
+          }
+        },
+        {
+          "function_call": {
+            "args": {
+              "departure_date": "2025-05-06",
+              "origin": "JFK",
+              "destination": "DXB"
+            },
+            "name": "search_flights"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    {
+      "parts": [
+        {
+          "function_response": {
+            "name": "search_flights",
+            "response": {
+              "result": [
+                {
+                  "flight_id": "DL220",
+                  "airline": "DL",
+                  "departure_time": "08:45",
+                  "arrival_time": "14:00",
+                  "price": 257
+                },
+                {
+                  "flight_id": "SW441",
+                  "airline": "SW",
+                  "departure_time": "16:45",
+                  "arrival_time": "22:30",
+                  "price": 356
+                },
+                {
+                  "flight_id": "DL295",
+                  "airline": "DL",
+                  "departure_time": "21:15",
+                  "arrival_time": "00:30",
+                  "price": 302
+                },
+                {
+                  "flight_id": "DL635",
+                  "airline": "DL",
+                  "departure_time": "16:45",
+                  "arrival_time": "20:15",
+                  "price": 296
+                },
+                {
+                  "flight_id": "SW806",
+                  "airline": "SW",
+                  "departure_time": "12:00",
+                  "arrival_time": "17:00",
+                  "price": 377
+                }
+              ]
+            }
+          }
+        },
+        {
+          "function_response": {
+            "name": "search_flights",
+            "response": {
+              "result": [
+                {
+                  "flight_id": "AA987",
+                  "airline": "AA",
+                  "departure_time": "09:45",
+                  "arrival_time": "12:15",
+                  "price": 633
+                },
+                {
+                  "flight_id": "AA262",
+                  "airline": "AA",
+                  "departure_time": "11:00",
+                  "arrival_time": "17:00",
+                  "price": 619
+                }
+              ]
+            }
+          }
+        },
+        {
+          "function_response": {
+            "name": "search_flights",
+            "response": {
+              "result": [
+                {
+                  "flight_id": "DL501",
+                  "airline": "DL",
+                  "departure_time": "15:00",
+                  "arrival_time": "21:15",
+                  "price": 415
+                },
+                {
+                  "flight_id": "DL734",
+                  "airline": "DL",
+                  "departure_time": "18:15",
+                  "arrival_time": "23:00",
+                  "price": 430
+                },
+                {
+                  "flight_id": "AA333",
+                  "airline": "AA",
+                  "departure_time": "11:00",
+                  "arrival_time": "17:45",
+                  "price": 499
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "parts": [
+        {
+          "text": "Okay, I have found the following flights from JFK to Dubai (DXB):\n\n*   **May 4th:**\n    *   DL220: Dep 08:45, Arr 14:00, $257\n    *   SW441: Dep 16:45, Arr 22:30, $356\n    *   DL295: Dep 21:15, Arr 00:30, $302\n    *   DL635: Dep 16:45, Arr 20:15, $296\n    *   SW806: Dep 12:00, Arr 17:00, $377\n*   **May 5th:**\n    *   AA987: Dep 09:45, Arr 12:15, $633\n    *   AA262: Dep 11:00, Arr 17:00, $619\n*   **May 6th:**\n    *   DL501: Dep 15:00, Arr 21:15, $415\n    *   DL734: Dep 18:15, Arr 23:00, $430\n    *   AA333: Dep 11:00, Arr 17:45, $499\n\nThe cheapest flight available over the next three days is flight DL220 on May 4th for $257.\n\nI will now attempt to book this flight for you.\n"
+        },
+        {
+          "function_call": {
+            "args": {
+              "flight_id": "DL220"
+            },
+            "name": "book_flight"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    {
+      "parts": [
+        {
+          "function_response": {
+            "name": "book_flight",
+            "response": {
+              "result": {
+                "booking_id": "BK42433",
+                "status": "confirmed",
+                "message": "Flight DL220 booked successfully."
+              }
+            }
+          }
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "parts": [
+        {
+          "text": "Your flight DL220 on May 4th from JFK to DXB has been successfully booked. Your booking ID is BK42433."
+        }
+      ],
+      "role": "model"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "CorrectDateInterpretationAndSearchCalls",
+      "prompt_template": "Based on the conversation and knowing the initial current date was 2025-05-04, did the agent make three separate 'search_flights' tool calls, one for each of the dates 2025-05-04, 2025-05-05, and 2025-05-06, all specifying origin 'JFK' and destination 'DXB'?",
+      "expected_response": "YES",
+      "is_outcome_check": false
+    },
+    {
+      "name": "IdentifiedCheapestFlight",
+      "prompt_template": "After receiving the search results for all three days, did the agent correctly identify and state that the cheapest flight overall was DL220 on May 4th for $257?",
+      "expected_response": "YES",
+      "is_outcome_check": false
+    },
+    {
+      "name": "AttemptedToBookCheapestFlight",
+      "prompt_template": "Did the agent call the 'book_flight' tool using the flight ID 'DL220' after identifying it as the cheapest flight?",
+      "expected_response": "YES",
+      "is_outcome_check": false
+    },
+    {
+      "name": "BookingSuccessfullyConfirmed",
+      "prompt_template": "Did the agent's final response to the user confirm that flight DL220 was successfully booked and include the booking ID 'BK42433' received from the 'book_flight' tool result?",
+      "expected_response": "YES",
+      "is_outcome_check": true
+    }
+  ]
+}
