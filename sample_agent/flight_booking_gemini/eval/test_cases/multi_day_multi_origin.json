@@ -1,5 +1,5 @@
 {
-  "goal_description": "Find flights from NYC to Dubai for the next four days and then book the cheapest flight.",
+  "goal_description": "Find flights from NYC (all airpots) to Dubai for the next four days and then book the cheapest flight.",
   "initial_state": {
     "current_date": "2025-05-04"
   },
@@ -563,31 +563,31 @@
   ],
   "assertions": [
     {
-      "name": "CorrectDateRangeInterpretation",
+      "name": "Correct date range interpretation",
       "prompt_template": "Did the agent search for flights across 2025-05-04, 2025-05-05, 2025-05-06, and 2025-05-07 in response to the user's request for 'over next 4 days'?",
       "expected_response": "YES",
       "is_outcome_check": false
     },
     {
-      "name": "SearchedMultipleNYCAirports",
+      "name": "Searched multiple NYC airports",
       "prompt_template": "Did the agent call 'search_flights' for flights from all three NYC area airports (JFK, LGA, EWR)?",
       "expected_response": "YES",
       "is_outcome_check": false
     },
     {
-      "name": "IdentifiedCheapestFlightCorrectly",
+      "name": "Identified cheapest flight",
       "prompt_template": "After presenting the flight search results, did the agent correctly identify flight AA450 from JFK to DXB on May 6th, 2025, with a price of $247 as the cheapest flight?",
       "expected_response": "YES",
       "is_outcome_check": false
     },
     {
-      "name": "AttemptedToBookCheapestFlight",
+      "name": "Attempted to book cheapest flight",
       "prompt_template": "Did the agent call the 'book_flight' tool with the flight_id 'AA450'?",
       "expected_response": "YES",
       "is_outcome_check": false
     },
     {
-      "name": "BookingConfirmedWithID",
+      "name": "Bookin confirmed with ID",
       "prompt_template": "Did the agent's final response confirm the booking for flight AA450 and provide the specific booking ID 'BK77253' obtained from the 'book_flight' tool response?",
       "expected_response": "YES",
       "is_outcome_check": true

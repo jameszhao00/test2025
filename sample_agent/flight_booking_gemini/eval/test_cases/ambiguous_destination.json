@@ -1,0 +1,337 @@
+{
+  "goal_description": "I wanted to find flights from JFK to major airports in Japan departing 30 days from now and book the cheapest one I found. I'm not sure what japan's major airports are.",
+  "initial_state": {
+    "current_date": "2025-05-04"
+  },
+  "golden_trace": [
+    {
+      "parts": [
+        {
+          "text": "want to go to japan. which airports?"
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "text": "I can help you search for flights to Japan, but I need to know which specific airport you'd like to fly into (like Tokyo Narita - NRT, Tokyo Haneda - HND, or Osaka - KIX) and where you'll be departing from, as well as your desired travel date.\n\nUnfortunately, I cannot provide a list of all airports in Japan."
+        }
+      ],
+      "role": "model"
+    },
+    {
+      "parts": [
+        {
+          "text": "can you try all 3? i fly out of jfk"
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "text": "Okay, I can search for flights from JFK to Tokyo Narita (NRT), Tokyo Haneda (HND), and Osaka (KIX).\n\nWhat date would you like to depart?"
+        }
+      ],
+      "role": "model"
+    },
+    {
+      "parts": [
+        {
+          "text": "30 days from now"
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "text": "Okay, I will search for flights from JFK to Tokyo Narita (NRT), Tokyo Haneda (HND), and Osaka (KIX) departing on 2025-06-03."
+        },
+        {
+          "function_call": {
+            "args": {
+              "destination": "NRT",
+              "origin": "JFK",
+              "departure_date": "2025-06-03"
+            },
+            "name": "search_flights"
+          }
+        },
+        {
+          "function_call": {
+            "args": {
+              "departure_date": "2025-06-03",
+              "origin": "JFK",
+              "destination": "HND"
+            },
+            "name": "search_flights"
+          }
+        },
+        {
+          "function_call": {
+            "args": {
+              "origin": "JFK",
+              "departure_date": "2025-06-03",
+              "destination": "KIX"
+            },
+            "name": "search_flights"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    {
+      "parts": [
+        {
+          "function_response": {
+            "name": "search_flights",
+            "response": {
+              "result": [
+                {
+                  "flight_id": "UA447",
+                  "airline": "UA",
+                  "departure_time": "19:30",
+                  "arrival_time": "00:00",
+                  "price": 590
+                },
+                {
+                  "flight_id": "SW739",
+                  "airline": "SW",
+                  "departure_time": "15:30",
+                  "arrival_time": "18:30",
+                  "price": 705
+                },
+                {
+                  "flight_id": "UA950",
+                  "airline": "UA",
+                  "departure_time": "10:45",
+                  "arrival_time": "14:45",
+                  "price": 629
+                },
+                {
+                  "flight_id": "UA440",
+                  "airline": "UA",
+                  "departure_time": "13:00",
+                  "arrival_time": "18:15",
+                  "price": 673
+                },
+                {
+                  "flight_id": "UA575",
+                  "airline": "UA",
+                  "departure_time": "11:45",
+                  "arrival_time": "17:45",
+                  "price": 629
+                }
+              ]
+            }
+          }
+        },
+        {
+          "function_response": {
+            "name": "search_flights",
+            "response": {
+              "result": [
+                {
+                  "flight_id": "SW236",
+                  "airline": "SW",
+                  "departure_time": "12:45",
+                  "arrival_time": "15:30",
+                  "price": 216
+                }
+              ]
+            }
+          }
+        },
+        {
+          "function_response": {
+            "name": "search_flights",
+            "response": {
+              "result": [
+                {
+                  "flight_id": "DL586",
+                  "airline": "DL",
+                  "departure_time": "07:30",
+                  "arrival_time": "13:15",
+                  "price": 393
+                },
+                {
+                  "flight_id": "DL802",
+                  "airline": "DL",
+                  "departure_time": "06:45",
+                  "arrival_time": "10:30",
+                  "price": 445
+                },
+                {
+                  "flight_id": "DL521",
+                  "airline": "DL",
+                  "departure_time": "10:00",
+                  "arrival_time": "16:30",
+                  "price": 403
+                },
+                {
+                  "flight_id": "AA729",
+                  "airline": "AA",
+                  "departure_time": "11:45",
+                  "arrival_time": "16:15",
+                  "price": 358
+                },
+                {
+                  "flight_id": "UA919",
+                  "airline": "UA",
+                  "departure_time": "13:45",
+                  "arrival_time": "19:15",
+                  "price": 392
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "parts": [
+        {
+          "text": "Here are the flights I found from JFK to NRT, HND, and KIX on June 3, 2025:\n\n**Flights to Tokyo Narita (NRT):**\n*   UA447: Dep 19:30, Arr 00:00, Price $590\n*   SW739: Dep 15:30, Arr 18:30, Price $705\n*   UA950: Dep 10:45, Arr 14:45, Price $629\n*   UA440: Dep 13:00, Arr 18:15, Price $673\n*   UA575: Dep 11:45, Arr 17:45, Price $629\n\n**Flights to Tokyo Haneda (HND):**\n*   SW236: Dep 12:45, Arr 15:30, Price $216\n\n**Flights to Osaka (KIX):**\n*   DL586: Dep 07:30, Arr 13:15, Price $393\n*   DL802: Dep 06:45, Arr 10:30, Price $445\n*   DL521: Dep 10:00, Arr 16:30, Price $403\n*   AA729: Dep 11:45, Arr 16:15, Price $358\n*   UA919: Dep 13:45, Arr 19:15, Price $392\n\nLet me know if you'd like to book any of these or search for other dates!"
+        }
+      ],
+      "role": "model"
+    },
+    {
+      "parts": [
+        {
+          "text": "cheapest"
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "text": "The cheapest flight available is SW236 from JFK to Tokyo Haneda (HND) departing at 12:45 and arriving at 15:30, priced at $216."
+        }
+      ],
+      "role": "model"
+    },
+    {
+      "parts": [
+        {
+          "text": "book that"
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "function_call": {
+            "args": {
+              "flight_id": "SW236"
+            },
+            "name": "book_flight"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    {
+      "parts": [
+        {
+          "function_response": {
+            "name": "book_flight",
+            "response": {
+              "result": {
+                "booking_id": null,
+                "status": "failed",
+                "message": "Could not book flight SW236. Please try again or select a different flight."
+              }
+            }
+          }
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "parts": [
+        {
+          "text": "I'm sorry, but I was unable to book the flight SW236. The booking failed. Please try again or select a different flight."
+        }
+      ],
+      "role": "model"
+    },
+    {
+      "parts": [
+        {
+          "text": "book again"
+        }
+      ]
+    },
+    {
+      "parts": [
+        {
+          "function_call": {
+            "args": {
+              "flight_id": "SW236"
+            },
+            "name": "book_flight"
+          }
+        }
+      ],
+      "role": "model"
+    },
+    {
+      "parts": [
+        {
+          "function_response": {
+            "name": "book_flight",
+            "response": {
+              "result": {
+                "booking_id": "BK45559",
+                "status": "confirmed",
+                "message": "Flight SW236 booked successfully."
+              }
+            }
+          }
+        }
+      ],
+      "role": "user"
+    },
+    {
+      "parts": [
+        {
+          "text": "Great news! I was able to book the flight SW236 for you this time. Your booking ID is BK45559."
+        }
+      ],
+      "role": "model"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "CorrectDateCalculation",
+      "prompt_template": "Given the initial state date was 2025-05-04, did the agent's first 'search_flights' tool call use the departure_date '2025-06-03'?",
+      "expected_response": "YES",
+      "is_outcome_check": false
+    },
+    {
+      "name": "SearchedMultipleDestinations",
+      "prompt_template": "Did the agent make 'search_flights' tool calls for all three destination codes 'NRT', 'HND', and 'KIX' originating from 'JFK' with the departure date '2025-06-03'?",
+      "expected_response": "YES",
+      "is_outcome_check": false
+    },
+    {
+      "name": "IdentifiedCheapestFlight",
+      "prompt_template": "Based on the 'search_flights' results provided in the conversation history, did the agent correctly state that the cheapest flight was SW236 to HND at $216?",
+      "expected_response": "YES",
+      "is_outcome_check": false
+    },
+    {
+      "name": "HandledBookingFailureAndRetry",
+      "prompt_template": "Did the agent attempt to book flight SW236 after the user said 'book that', report that the booking failed based on the tool response, and then attempt to book SW236 again when the user said 'book again'?",
+      "expected_response": "YES",
+      "is_outcome_check": false
+    },
+    {
+      "name": "SuccessfullyBookedFlight",
+      "prompt_template": "After the user said 'book again', did the agent call the 'book_flight' tool for SW236 and report a successful booking with a booking ID based on the tool's response?",
+      "expected_response": "YES",
+      "is_outcome_check": true
+    }
+  ]
+}

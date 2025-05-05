@@ -168,7 +168,8 @@ Here is the conversation history so far:
 
 Based on the agent's last message and your goal, what would you say next?
 - Provide necessary information only when asked or when logical. Do not provide more details than needed.
-- Respond as concisely as possible. Assume the agent remembers previous options and context, and refer to them implicitly rather than restating details unless absolutely necessary for clarity.
+- Assume the agent can make inferences based on the conversation history and the domain.
+- Assume the agent remembers previous options and context, and refer to them implicitly rather than restating details unless absolutely necessary for clarity.
 - Don't reveal all your constraints at once unless asked directly.
 - If the agent asks a clarifying question, answer it relevantly.
 - If the agent presents options, make a choice.
@@ -271,9 +272,6 @@ Your response:"""
         assertions: List[LLMCheckAssertion],
         goal_description: str,
         max_turns: int = 15,
-        agent_tool_map: Optional[
-            Dict[str, Callable]
-        ] = None,  # Keep for reference, but not used directly
     ) -> Dict[str, Any]:
         """
         Runs agent using automatic function calling, evaluates using LLM assertions.
@@ -352,32 +350,23 @@ Your response:"""
             # Docstring is copied from the original function for the LLM's schema generation
             return replay_tool_executor("book_flight", args)
 
-        # List of tools to pass to the agent during evaluation replay
-        # Always use the replay tools, even in simulation mode, to ensure
         replay_tools = [search_flights, book_flight]
         tools_for_this_run = replay_tools
 
-        # --- Reset Agent and State ---
         try:
-            # Reset tool state tracking at the beginning of evaluation
             reset_tool_states()
         except ImportError:
             log.warning(
                 "Could not import and call reset_tool_states(). Tool state might persist."
             )
 
-        # --- Get Initial User Input ---
         initial_user_input: Optional[str] = "hey"
 
         log.info(f"Using initial user input: {initial_user_input}")
 
-        # --- Conversation Loop ---
         current_turn_index = 0
         user_input: Optional[str] = initial_user_input
-        trace_index = (
-            0  # Index for iterating through golden_trace in non-simulated mode
-        )
-        total_tool_calls = 0  # Count actual tool executions/replays
+        total_tool_calls = 0
 
         while current_turn_index < max_turns:
             current_turn_index += 1
@@ -429,10 +418,9 @@ Your response:"""
         for assertion in assertions:
             log.info(f"Evaluating assertion: {assertion.name}")
             try:
-                # Pass the agent's raw history directly to the assertion evaluator
                 result = assertion.evaluate(
-                    agent_history=agent.get_full_history(),  # Pass raw history
-                    llm_client=self.client,  # Use evaluator's client
+                    agent_history=agent.get_full_history(),
+                    llm_client=self.client,
                     eval_model_name=self.eval_model_name,
                 )
                 assertion_results.append(result)
@@ -441,10 +429,10 @@ Your response:"""
                     if outcome_passed is None:
                         outcome_passed = (
                             result.passed
-                        )  # First outcome check sets initial status
+                        )
                     elif not result.passed:
                         outcome_passed = (
-                            False  # Any failed outcome check makes overall outcome fail
+                            False
                         )
                     log.info(
                         f"Outcome Check ({result.name}): {'PASSED' if result.passed else 'FAILED'}"

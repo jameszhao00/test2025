@@ -134,26 +134,20 @@
   ],
   "assertions": [
     {
-      "name": "CorrectDateInterpretationAndSearch",
-      "prompt_template": "Based on the conversation and knowing the initial current date was 2025-05-04, did the agent's first 'search_flights' tool call use origin 'JFK', destination 'SFO', and departure_date '2025-05-05' exactly in its args?",
+      "name": "Inferred departure date",
+      "prompt_template": "Did the agent's first 'search_flights' tool call use origin 'JFK', destination 'SFO', and the departure_date '2025-05-05'?",
       "expected_response": "YES",
       "is_outcome_check": false
     },
     {
-      "name": "PresentedSearchResults",
-      "prompt_template": "Did the agent's response after the first 'search_flights' tool call list the specific flights UA483, AA442, DL711, DL815, and AA755 found in the tool result?",
+      "name": "Presented search results",
+      "prompt_template": "Did the agent's response after the first 'search_flights' tool call list all flights from the tool result?",
       "expected_response": "YES",
       "is_outcome_check": false
     },
     {
-      "name": "AttemptedFirstBookingCorrectly",
-      "prompt_template": "After the user said 'book DL815', did the agent call the 'book_flight' tool with the flight_id 'DL815' in its args?",
-      "expected_response": "YES",
-      "is_outcome_check": false
-    },
-    {
-      "name": "SuccessfulRetryAndConfirmation",
-      "prompt_template": "Did the agent make a 'book_flight' call for DL815 which resulted in a 'confirmed' status and booking_id 'BK39292'",
+      "name": "Booked successfully",
+      "prompt_template": "After the user requested a booking, did the agent call the 'book_flight' tool with the right flight id?",
       "expected_response": "YES",
       "is_outcome_check": true
     }

@@ -67,7 +67,6 @@ Instructions:
 1.  **Goal Description:** A first person account (i.e. speaking from the user's perspective) of what they wanted to accomplish, baed on this conversation. Be specific about origin, destination, dates, and any key constraints mentioned (e.g., cheapest, specific airline).
 2.  **Assertions:** Generate a list of 3-5 key assertions to verify the agent's performance *within this specific trace*. Each assertion must be a dictionary with the following keys:
     *   `name`: A short, descriptive CamelCase name (e.g., "CorrectDateInterpretation", "OfferedFlightOptions", "BookedCorrectFlight").
-    *   `description`: A brief explanation of what the assertion checks *in the context of this trace*.
     *   `prompt_template`: A specific question or instruction for *another* LLM to evaluate based *only* on the conversation history provided above. This template MUST ask a specific YES/NO question about the agent's behavior or the conversation outcome *as observed in this trace*. It MUST incorporate relevant details (like specific dates, flight IDs, locations mentioned in *this* trace) directly into the question itself. Do *not* use placeholders like `{{date}}`. Refer explicitly to the initial state or specific turns if necessary (e.g., "Given the initial state date was {initial_state.get('current_date', 'YYYY-MM-DD')}, did the agent correctly search for flights on the absolute date YYYY-MM-DD when the user asked for 'relative_term'?").
     *   `expected_response`: Should be "YES", as the assertion should describe correct behavior *observed* in this trace. If a step clearly failed in the trace (e.g., booking tool failed), an assertion could check *if the agent reported the failure* (expected: YES).
     *   `is_outcome_check`: Set to `true` for the single assertion that best represents the successful completion of the user's *apparent primary goal* in this trace (e.g., booking confirmed with ID, search results provided if booking wasn't requested/completed). Set to `false` for intermediate checks or if the primary goal wasn't achieved. Only one assertion should have `is_outcome_check: true`.
@@ -96,83 +95,29 @@ Input Conversation History:
 
 Output JSON:
   {{
-    "goal_description": "Book the cheapest flight from SFO to JFK for tomorrow.",
+    "goal_description": "Find and book the cheapest flight from JFK to SFO for tomorrow",
     "assertions": [
-      {{
-        "name": "CorrectDateInterpretation",
-        "description": "Checks if the agent correctly interpreted 'tomorrow' based on the initial state's current_date (2024-10-26) and used the absolute date 2024-10-27 in the search.",
-        "prompt_template": "Based on the conversation and knowing the initial current date was 2024-10-26, did the agent correctly use the absolute date 2024-10-27 in its first 'search_flights' tool call args?",
-        "expected_response": "YES",
-        "is_outcome_check": false
-      }},
-      {{
-        "name": "OfferedFlightOptions",
-        "description": "Checks if the agent offered specific flight options (UA456, AA123) after searching.",
-        "prompt_template": "Did the agent's response after the first 'search_flights' tool call present the specific flight options UA456 and AA123 found in the tool result?",
-        "expected_response": "YES",
-        "is_outcome_check": false
-      }},
-      {{
-        "name": "CorrectFlightBooked",
-        "description": "Checks if the agent attempted to book the specific flight the user selected (AA123).",
-        "prompt_template": "Did the agent call the 'book_flight' tool with the exact flight ID 'AA123' after the user explicitly requested it?",
-        "expected_response": "YES",
-        "is_outcome_check": false
-      }},
-      {{
-        "name": "BookingConfirmedWithID",
-        "description": "Checks if the agent confirmed the booking successfully and provided the booking ID from the tool result.",
-        "prompt_template": "Did the agent's final response state that the booking for flight AA123 was confirmed and include the booking ID 'BK78910'?",
-        "expected_response": "YES",
-        "is_outcome_check": true
-      }}
+        {{
+            "name": "Inferred departure date",
+            "prompt_template": "Did the agent's first 'search_flights' tool call use origin 'JFK', destination 'SFO', and the departure_date '2025-05-05'?",
+            "expected_response": "YES",
+            "is_outcome_check": false
+        }},
+        {{
+            "name": "Presented search results",
+            "prompt_template": "Did the agent's response after the first 'search_flights' tool call list all flights from the tool result?",
+            "expected_response": "YES",
+            "is_outcome_check": false
+        }},
+        {{
+            "name": "Booked successfully",
+            "prompt_template": "After the user requested a booking, did the agent call the 'book_flight' tool with the right flight id?",
+            "expected_response": "YES",
+            "is_outcome_check": true
+        }}
     ]
   }}
 --- EXAMPLE 1 END ---
-
---- EXAMPLE 2 START ---
-
-Input Initial State:
-  {{
-    "current_date": "2024-11-15"
-  }}
-
-Input Conversation History:
-  User: Any flights from London Heathrow to Paris CDG 5 days from now?
-  Agent: Sure, let me check flights from LHR to CDG for November 20th, 2024.
-  Tool Call: search_flights(args={{"origin": "LHR", "destination": "CDG", "departure_date": "2024-11-20"}})
-  Tool Result: [{{"flight_id": "BA308", "airline": "BA", "departure_time": "10:00", "arrival_time": "12:15", "price": 150}}, {{"flight_id": "AF101", "airline": "AF", "departure_time": "14:30", "arrival_time": "16:45", "price": 165}}]
-  Agent: Yes, I found a couple: British Airways BA308 for £150 and Air France AF101 for £165.
-  User: Okay thanks.
-
-Output JSON:
-  {{
-    "goal_description": "lookup flights from London Heathrow to Paris CDG for 5 days in the future.",
-    "assertions": [
-      {{
-        "name": "CorrectSearchParameters",
-        "description": "Checks if the agent used the correct origin (LHR), destination (CDG), and specific date (2024-11-20) provided by the user in the 'search_flights' tool call.",
-        "prompt_template": "Did the agent's 'search_flights' tool call use origin 'LHR', destination 'CDG', and departure_date '2024-11-20' exactly as specified in the first user turn?",
-        "expected_response": "YES",
-        "is_outcome_check": false
-      }},
-      {{
-        "name": "PresentedSearchResults",
-        "description": "Checks if the agent presented the specific flight options found (BA308 and AF101) to the user after the search.",
-        "prompt_template": "Did the agent's response after the 'search_flights' tool call mention the specific flight options found, including BA308 and AF101?",
-        "expected_response": "YES",
-        "is_outcome_check": true
-      }},
-      {{
-        "name": "NoBookingAttempt",
-        "description": "Checks that the agent did not attempt to book a flight, as the user did not request it in this short conversation.",
-        "prompt_template": "Did the agent avoid calling the 'book_flight' tool during this conversation?",
-        "expected_response": "YES",
-        "is_outcome_check": false
-      }}
-    ]
-  }}
---- EXAMPLE 2 END ---
 
 Now, analyze the actual conversation history provided at the beginning and generate the JSON output for it.
 
@@ -221,7 +166,6 @@ Now, analyze the actual conversation history provided at the beginning and gener
                 k in assert_data
                 for k in [
                     "name",
-                    "description",
                     "prompt_template",
                     "expected_response",
                     "is_outcome_check",
@@ -480,8 +424,7 @@ def run_evaluation(test_case_name: str):
             agent=agent,
             golden_trace=test_case_data.golden_trace,
             assertions=assertions,
-            goal_description=goal_desc,
-            agent_tool_map=agent.tool_function_map,
+            goal_description=goal_desc
         )
         evaluator.display_results(results)
 
